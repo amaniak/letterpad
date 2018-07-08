@@ -554,6 +554,10 @@ export async function insertSettings(models) {
         {
             option: "banner",
             value: "/uploads/banner.jpg"
+        },
+        {
+            option: "editor",
+            value: "richtext"
         }
     ];
     await models.Setting.bulkCreate(data);

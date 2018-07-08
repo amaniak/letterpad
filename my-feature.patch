@@ -1,0 +1,5055 @@
+diff --git a/README.md b/README.md
+index a0d9063..97a5aed 100644
+--- a/README.md
++++ b/README.md
+@@ -11,14 +11,13 @@ Letterpad is an open-source and a high performant publishing engine for blogs wi
+ -   Theme support
+ -   Multi-level navigation
+ -   Image optimizer
+--   React with styled-components for styling
+ -   GraphQL for json API
+ -   Roles - Admin, Reviewer, Author, Reader
+ -   Markdown and RichText editor
+ -   Search Engine Optimised
+ -   Multi-language support (currently en, fr and pl)
+ 
+-To check letterpad in action, check out this [Demo Site](https://letterpad.app/demo).
++To check letterpad in action, check out this [Demo Site](https://letterpad.app/demo)
+ You can visit the [Admin Panel](https://letterpad.app/demo/admin/login) and login with
+ 
+ ```
+@@ -26,7 +25,7 @@ Email: demo@demo.com
+ Password: demo
+ ```
+ 
+-A verbose documentation can be found at [https://letterpad.app/docs](https://letterpad.app/docs).
++A verbose documentation can be found at [https://letterpad.app/docs](https://letterpad.app/docs)
+ 
+ Letterpad is an open source project, licensed under MIT. It is a Single Page Application and runs ridiculously fast. It has a very minimal initial configuration and is easy to setup.
+ 
+@@ -48,11 +47,11 @@ cd letterpad
+ 3.  Install dependencies and run (**use yarn to install dependencies**):
+ 
+ ```
+-NODE_ENV=dev yarn install
++yarn install
+ theme=hugo yarn dev
+ ```
+ 
+-`NODE_ENV=dev yarn install` is going to install all the dependencies, seed the database, prepare a build and welcome you to letterpad.
++`yarn install` is going to install all the dependencies, seed the database, prepare a build and welcome you to letterpad.
+ 
+ Now visit [http://localhost:4040](http://localhost:4040) and checkout the welcome page.
+ 
+@@ -159,14 +158,14 @@ For Prettier, it is recommended to add to the editor's `settings.json` to run on
+ If you want to seed the database with sample data, run the below command:
+ 
+ ```
+-// you should have babel-cli installed. Its good to have this package installed globally.
++// you should have babel-node installed. Its good to have this package installed globally.
+ npm run seed
+ ```
+ 
+ ### Contribute
+ 
+-Letterpad is in its early stages and requires support to move ahead. You can contribute through various ways like
+-testing, ideas, recommendations, fixing bugs, documentation, logo design, assets, etc. You can join the slack channel (letterpad.slack.com) for discussions. Thanks.
++Letterpad is in its early stages and requries support to move ahead. You can contribute through various ways like
++testing, ideas, recommendations, fixing bugs, documentation, logo design, assets, etc. You can join the slack channel(letterpad.slack.com) for discussions. Thanks.
+ 
+ Slack Channel - [https://letterpad.slack.com](https://letterpad.slack.com)
+ 
+diff --git a/admin/Routes.js b/admin/Routes.js
+index 3181efc..c42f370 100644
+--- a/admin/Routes.js
++++ b/admin/Routes.js
+@@ -95,6 +95,7 @@ class Routes extends Component {
+                             path="/admin/posts/:post_id"
+                             component={Edit}
+                             type="post"
++                            layout="none"
+                             settings={settings.data}
+                         />
+                         <SecuredRoute
+diff --git a/admin/components/Post/ArticleCreate.js b/admin/components/Post/ArticleCreate.js
+index 77d5886..a2dfa2e 100644
+--- a/admin/components/Post/ArticleCreate.js
++++ b/admin/components/Post/ArticleCreate.js
+@@ -4,6 +4,18 @@ import PropTypes from "prop-types";
+ import Editor from "./Editor";
+ import PostActions from "./PostActions";
+ import ContentEditable from "./ContentEditable";
++import styled from "styled-components";
++
++const Article = styled.article`
++    display: flex;
++    flex: 1;
++    flex-direction: column;
++    height: 100%;
++    div[contenteditable="true"] {
++        height: 100%;
++        min-height: 100vh;
++    }
++`;
+ 
+ export default class CreateArticle extends Component {
+     static propTypes = {
+@@ -15,20 +27,10 @@ export default class CreateArticle extends Component {
+         isMarkdown: false
+     };
+ 
+-    componentWillUnmount() {
+-        document.body.classList.remove("options-open");
+-    }
+-
+-    changeEditor = e => {
+-        const mode = e.target.checked ? "markdown" : "rich-text";
+-        PostActions.setData({ mode });
+-        this.setState({ isMarkdown: ~~e.target.checked });
+-    };
+-
+     render() {
+         return (
+-            <div className="card">
+-                <article className="post">
++            <React.Fragment>
++                <Article className="post">
+                     <div className="post-header">
+                         <ContentEditable
+                             placeholder="Enter a title"
+@@ -41,32 +43,12 @@ export default class CreateArticle extends Component {
+                                 }
+                             }}
+                         />
+-                        <div className="switch-block">
+-                            <span className="switch-label switch-off-text">
+-                                Rich Text
+-                            </span>
+-                            <label className="switch">
+-                                <input
+-                                    type="checkbox"
+-                                    onChange={this.changeEditor}
+-                                    checked={this.state.isMarkdown}
+-                                />
+-                                <span className="slider round" />
+-                            </label>
+-                            <span className="switch-label switch-on-text">
+-                                Markdown
+-                            </span>
+-                        </div>
+                     </div>
+                     <div className="post-content">
+-                        <Editor
+-                            isMarkdown={this.state.isMarkdown}
+-                            body={PostActions.data.body}
+-                            mdBody={PostActions.data.mdBody}
+-                        />
++                        <Editor isMarkdown={false} {...this.props.post} />
+                     </div>
+-                </article>
+-            </div>
++                </Article>
++            </React.Fragment>
+         );
+     }
+ }
+diff --git a/admin/components/Post/ArticleEdit.js b/admin/components/Post/ArticleEdit.js
+index 81479c8..effe638 100644
+--- a/admin/components/Post/ArticleEdit.js
++++ b/admin/components/Post/ArticleEdit.js
+@@ -4,30 +4,31 @@ import PropTypes from "prop-types";
+ import Editor from "./Editor";
+ import PostActions from "./PostActions";
+ import ContentEditable from "./ContentEditable";
++import styled from "styled-components";
++
++const Article = styled.article`
++    display: flex;
++    flex: 1;
++    flex-direction: column;
++    height: 100%;
++    div[contenteditable="true"] {
++        height: 100%;
++        min-height: 100vh;
++    }
++    .post-content {
++        flex: 1;
++    }
++`;
+ 
+ export default class ArticleEdit extends Component {
+     static propTypes = {
+         post: PropTypes.object
+     };
+ 
+-    state = {
+-        isMarkdown: this.props.post.mode == "markdown"
+-    };
+-
+-    componentWillUnmount() {
+-        document.body.classList.remove("options-open");
+-    }
+-
+-    changeEditor = e => {
+-        const mode = e.target.checked ? "markdown" : "rich-text";
+-        PostActions.setData({ mode });
+-        this.setState({ isMarkdown: ~~e.target.checked });
+-    };
+-
+     render() {
+         return (
+-            <div className="card">
+-                <article className="post">
++            <React.Fragment>
++                <Article className="post">
+                     <div className="post-header">
+                         <ContentEditable
+                             title={this.props.post.title}
+@@ -38,32 +39,12 @@ export default class ArticleEdit extends Component {
+                                 });
+                             }}
+                         />
+-                        <div className="switch-block">
+-                            <span className="switch-label switch-off-text">
+-                                Rich Text
+-                            </span>
+-                            <label className="switch">
+-                                <input
+-                                    type="checkbox"
+-                                    onChange={this.changeEditor}
+-                                    checked={this.state.isMarkdown}
+-                                />
+-                                <span className="slider round" />
+-                            </label>
+-                            <span className="switch-label switch-on-text">
+-                                Markdown
+-                            </span>
+-                        </div>
+                     </div>
+                     <div className="post-content">
+-                        <Editor
+-                            isMarkdown={this.state.isMarkdown}
+-                            {...this.props.post}
+-                        />
++                        <Editor isMarkdown={false} {...this.props.post} />
+                     </div>
+-                    <div className="footer"> </div>
+-                </article>
+-            </div>
++                </Article>
++            </React.Fragment>
+         );
+     }
+ }
+diff --git a/admin/components/Post/Categories.js b/admin/components/Post/Categories.js
+index daa5a25..a03ce27 100644
+--- a/admin/components/Post/Categories.js
++++ b/admin/components/Post/Categories.js
+@@ -47,11 +47,8 @@ export class Categories extends Component {
+ 
+     render() {
+         return (
+-            <div className="card">
+-                <div className="x_title">
+-                    <div className="module-title">Categories</div>
+-                    <div className="clearfix" />
+-                </div>
++            <div>
++                <div className="meta-label">Categories</div>
+                 <div className="x_content">
+                     <div className="control-group">
+                         <Select.Creatable
+@@ -64,6 +61,7 @@ export class Categories extends Component {
+                         />
+                     </div>
+                 </div>
++                <hr />
+             </div>
+         );
+     }
+diff --git a/admin/components/Post/ContentEditable.js b/admin/components/Post/ContentEditable.js
+index dbc5163..806b2aa 100644
+--- a/admin/components/Post/ContentEditable.js
++++ b/admin/components/Post/ContentEditable.js
+@@ -20,7 +20,7 @@ export default class ContentEditable extends Component {
+ 
+     render() {
+         return (
+-            <h2
++            <h1
+                 className="post-title"
+                 onInput={this.emitChange}
+                 placeholder={this.props.placeholder}
+@@ -30,7 +30,7 @@ export default class ContentEditable extends Component {
+                 ref={node => (this.node = node)}
+             >
+                 {this.props.title}
+-            </h2>
++            </h1>
+         );
+     }
+ }
+diff --git a/admin/components/Post/Editor.js b/admin/components/Post/Editor.js
+index df5ace7..b187fac 100644
+--- a/admin/components/Post/Editor.js
++++ b/admin/components/Post/Editor.js
+@@ -1,9 +1,54 @@
+ import React, { Component } from "react";
+ import PropTypes from "prop-types";
+-
+-import MarkdownEditor from "./Editors/MarkdownEditor";
+-import RichText from "./Editors/RichText";
++import Html from "slate-html-serializer";
++// import MarkdownEditor from "./Editors/MarkdownEditor";
++import { SlateContent, SlateEditor, TextMenu } from "./Editors/SlateEditor";
+ import InsertMedia from "../../data-connectors/InsertMedia";
++import { BoldPlugin, BoldButton } from "./Editors/plugins/bold";
++import { ItalicPlugin, ItalicButton } from "./Editors/plugins/italic";
++import { UnderlinePlugin, UnderlineButton } from "./Editors/plugins/underline";
++import { HighlightPlugin, HighlightButton } from "./Editors/plugins/highlight";
++import { ListPlugin, ListButtonBar } from "./Editors/plugins/list";
++import { ImageButton, ImagePlugin } from "./Editors/plugins/image";
++import ToolBar from "./Editors/SlateEditor/ToolBar";
++import rules from "./Editors/helper/rules";
++import PostActions from "./PostActions";
++import { LinkPlugin, LinkButton } from "./Editors/plugins/link";
++import { MarkdownPlugin } from "./Editors/plugins/markdown";
++import { HeadingsPlugin, HeadingsButton } from "./Editors/plugins/headings";
++import { LinebreakPlugin, LinebreakButton } from "./Editors/plugins/linebreak";
++import {
++    BlockquoteButton,
++    BlockquotePlugin
++} from "./Editors/plugins/blockquote";
++// import PluginEditCode from "slate-edit-code";
++import PluginPrism from "slate-prism";
++import { CodeblockPlugin, CodeblockButton } from "./Editors/plugins/codeblock";
++
++const html = new Html({ rules });
++
++// Apply plugins
++const plugins = [
++    PluginPrism({
++        onlyIn: node => node.type === "code_block",
++        getSyntax: node => node.data.get("syntax")
++    }),
++    CodeblockPlugin(),
++    // PluginEditCode({
++    //     onlyIn: node => node.type === "code_block"
++    // }),
++    HeadingsPlugin(),
++    BoldPlugin(),
++    ItalicPlugin(),
++    UnderlinePlugin(),
++    HighlightPlugin(),
++    ListPlugin(),
++    ImagePlugin(),
++    LinkPlugin(),
++    LinebreakPlugin(),
++    MarkdownPlugin(),
++    BlockquotePlugin()
++];
+ 
+ class Editor extends Component {
+     static propTypes = {
+@@ -13,21 +58,92 @@ class Editor extends Component {
+         isMarkdown: PropTypes.any
+     };
+ 
++    state = {
++        value: html.deserialize(this.props.body) // Value.fromJSON(initialEditorState)
++    };
++
++    menuRef = React.createRef();
++
++    componentDidMount = () => {
++        this.updateMenu();
++    };
++
++    componentDidUpdate = () => {
++        this.updateMenu();
++    };
++    /**
++     * Update the menu's absolute position.
++     */
++
++    updateMenu = () => {
++        const { value } = this.state;
++        const menu = this.menuRef.current;
++        if (!menu) return;
++
++        if (value.isBlurred || value.isEmpty) {
++            menu.removeAttribute("style");
++            return;
++        }
++
++        const selection = window.getSelection();
++        const range = selection.getRangeAt(0);
++        const rect = range.getBoundingClientRect();
++        menu.style.opacity = 1;
++        menu.style.top = `${rect.top +
++            window.pageYOffset -
++            menu.offsetHeight}px`;
++
++        menu.style.left = `${rect.left +
++            window.pageXOffset -
++            menu.offsetWidth / 2 +
++            rect.width / 2}px`;
++    };
++    /**
++     * On change.
++     *
++     * @param {Change} change
++     */
++
++    onEditorChange = value => {
++        if (value.document != this.state.value.document) {
++            const string = html.serialize(value);
++            PostActions.setData({
++                body: string
++            });
++        }
++        this.setState({ value: value });
++    };
++
+     render() {
+         return (
+-            <div className="fs-normal">
+-                {this.props.isMarkdown ? (
+-                    <MarkdownEditor
+-                        body={this.props.body}
+-                        mdBody={this.props.mdBody}
+-                    />
+-                ) : (
+-                    <RichText
+-                        body={this.props.body}
+-                        insertMedia={this.props.insertMedia}
+-                    />
+-                )}
+-            </div>
++            <React.Fragment>
++                <SlateEditor
++                    plugins={plugins}
++                    value={this.state.value}
++                    onChange={this.onEditorChange}
++                >
++                    <TextMenu menuRef={this.menuRef} value={this.state.value}>
++                        <BoldButton />
++                        <ItalicButton />
++                        <UnderlineButton />
++                        <BlockquoteButton type="block-quote" />
++                        <HeadingsButton type="heading-two" />
++                        <HeadingsButton type="heading-three" />
++                        <ListButtonBar />
++                        <LinkButton />
++                    </TextMenu>
++                    <SlateContent />
++                    <ToolBar value={this.state.value}>
++                        <ImageButton />
++                        <HighlightButton />
++                        <HeadingsButton type="heading-four" />
++                        <HeadingsButton type="heading-five" />
++                        <HeadingsButton type="heading-six" />
++                        <LinebreakButton />
++                        <CodeblockButton />
++                    </ToolBar>
++                </SlateEditor>
++            </React.Fragment>
+         );
+     }
+ }
+diff --git a/admin/components/Post/Editors/MarkdownEditor.js b/admin/components/Post/Editors/MarkdownEditor.js
+deleted file mode 100644
+index 23ff7be..0000000
+--- a/admin/components/Post/Editors/MarkdownEditor.js
++++ /dev/null
+@@ -1,49 +0,0 @@
+-import React, { Component } from "react";
+-import PropTypes from "prop-types";
+-import marked from "marked";
+-
+-import { CodeFlask } from "../../../libraries/code-flask";
+-import PostActions from "../PostActions";
+-
+-class MarkdownEditor extends Component {
+-    static propTypes = {
+-        mdBody: PropTypes.string
+-    };
+-
+-    state = {
+-        body: this.props.mdBody
+-    };
+-
+-    componentDidMount() {
+-        var flask = new CodeFlask();
+-        flask.run("#md-post", {
+-            language: "markdown",
+-            placeholder: "...",
+-            lineNumbers: true
+-        });
+-        flask.onUpdate(text => {
+-            PostActions.setData({
+-                mdBody: text,
+-                mdPreview: this.getPreview(text)
+-            });
+-        });
+-
+-        PostActions.setData({
+-            mdPreview: this.getPreview(this.props.mdBody || "")
+-        });
+-    }
+-
+-    getPreview = text => {
+-        return marked(text).replace(/<pre>/g, "<pre class=\"hljs\">");
+-    };
+-
+-    componentDidUpdate() {
+-        document.querySelectorAll(".hljs code").forEach(hljs.highlightBlock);
+-    }
+-
+-    render() {
+-        return <div id="md-post">{this.state.body}</div>;
+-    }
+-}
+-
+-export default MarkdownEditor;
+diff --git a/admin/components/Post/Editors/RichText.js b/admin/components/Post/Editors/RichText.js
+deleted file mode 100644
+index 486841e..0000000
+--- a/admin/components/Post/Editors/RichText.js
++++ /dev/null
+@@ -1,128 +0,0 @@
+-import React, { Component } from "react";
+-import PropTypes from "prop-types";
+-
+-import PostActions from "../PostActions";
+-import FileExplorerModal from "../../../components/Modals/FileExplorerModal";
+-import { uploadFile } from "../../../util";
+-
+-class RichText extends Component {
+-    static propTypes = {
+-        insertMedia: PropTypes.func.isRequired,
+-        body: PropTypes.string
+-    };
+-
+-    state = {
+-        fileExplorerOpen: false
+-    };
+-
+-    componentDidMount() {
+-        this.loadQuillEditor();
+-        qEditor.root.innerHTML = this.props.body;
+-    }
+-
+-    loadQuillEditor = () => {
+-        var toolbarOptions = [
+-            [
+-                "bold",
+-                "italic",
+-                "underline",
+-                "blockquote",
+-                "code-block",
+-                "image",
+-                { list: "ordered" },
+-                { list: "bullet" },
+-                { header: [1, 2, 3, 4, 5, 6, false] },
+-                { color: [] },
+-                { background: [] },
+-                { align: [] },
+-                "clean"
+-            ]
+-        ];
+-        let _this = this;
+-        window.qEditor = new Quill("#editor", {
+-            theme: "snow",
+-            placeholder: "Compose an epic...",
+-            modules: {
+-                toolbar: {
+-                    container: toolbarOptions,
+-                    handlers: {
+-                        image: () => {
+-                            //document.querySelector(".post-image").click();
+-                            _this.toggleFileExplorer();
+-                        }
+-                    }
+-                },
+-                syntax: true
+-            }
+-        });
+-        qEditor.on("text-change", function() {
+-            var justHtml = qEditor.root.innerHTML;
+-            // add extra class
+-            justHtml = justHtml.replace("\"ql-syntax\"", "\"ql-syntax hljs\"");
+-            PostActions.setData({
+-                body: justHtml
+-            });
+-        });
+-        qEditor.root.innerHTML = this.props.body;
+-    };
+-
+-    // upload new images and update the post
+-    uploadImage = async files => {
+-        const uploadedFiles = await uploadFile({ files, type: "post_image" });
+-        var Delta = qEditor.constructor.import("delta");
+-        uploadedFiles.forEach(post_image => {
+-            qEditor.updateContents(
+-                new Delta()
+-                    .retain(qEditor.selection.savedRange.index)
+-                    .insert({
+-                        image: post_image
+-                    })
+-                    .insert("\n\n")
+-            );
+-        });
+-    };
+-
+-    // insert an existing image from the media gallery
+-    insertImage = post_image => {
+-        this.toggleFileExplorer();
+-        var Delta = qEditor.constructor.import("delta");
+-        qEditor.updateContents(
+-            new Delta()
+-                .retain(qEditor.selection.savedRange.index)
+-                .insert({
+-                    image: post_image
+-                })
+-                .insert("\n\n")
+-        );
+-    };
+-
+-    toggleFileExplorer = () => {
+-        this.setState({ fileExplorerOpen: !this.state.fileExplorerOpen });
+-    };
+-    render() {
+-        return (
+-            <div id="quill-container">
+-                <div id="editor" className="editor" />
+-                <input
+-                    ref={input => (this.imageInput = input)}
+-                    className="hide post-image"
+-                    type="file"
+-                    multiple
+-                    onChange={input => this.uploadImage(input.target.files)}
+-                />
+-                {this.state.fileExplorerOpen && (
+-                    <FileExplorerModal
+-                        onClose={this.toggleFileExplorer}
+-                        onMediaSelect={this.insertImage}
+-                        addNewMedia={() => {
+-                            document.querySelector(".post-image").click();
+-                            this.toggleFileExplorer();
+-                        }}
+-                    />
+-                )}
+-            </div>
+-        );
+-    }
+-}
+-
+-export default RichText;
+diff --git a/admin/components/Post/Editors/SlateEditor/SlateContent.js b/admin/components/Post/Editors/SlateEditor/SlateContent.js
+new file mode 100644
+index 0000000..be63d3c
+--- /dev/null
++++ b/admin/components/Post/Editors/SlateEditor/SlateContent.js
+@@ -0,0 +1,129 @@
++import React from "react";
++import classnames from "classnames";
++import { Editor } from "slate-react";
++
++//
++// Nodes
++//
++// import { AlignmentNode } from "@slate-editor/alignment-plugin";
++// import { EmbedNode } from "@slate-editor/embed-plugin";
++// import { GridNode, GridRowNode, GridCellNode } from "@slate-editor/grid-plugin";
++import { ImageNode } from "../plugins/image";
++// import { LinkNode } from "@slate-editor/link-plugin";
++import {
++    ListItemNode,
++    OrderedListNode,
++    UnorderedListNode
++} from "../plugins/list";
++
++//
++// Marks
++//
++import { BoldMark } from "../plugins/bold";
++import { ItalicMark } from "../plugins/italic";
++import { UnderlineMark } from "../plugins/underline";
++import { HighlightMark } from "../plugins/highlight";
++import { LinkNode } from "../plugins/link";
++// import MarkdownNode from "../plugins/markdown/MarkdownNode";
++import BlockquoteNode from "../plugins/blockquote/BlockquoteNode";
++// import { HeadingsNode } from "../plugins/headings";
++// import { MarkdownNode } from "../plugins/markdown";
++import LinebreakNode from "../plugins/linebreak/LinebreakNode";
++import { HeadingsNode } from "../plugins/headings";
++import { CodeblockNode } from "../plugins/codeblock";
++import { decorateNode } from "../plugins/codeblock/CodeblockUtils";
++
++/* eslint-disable default-case */
++export const renderNode = props => {
++    switch (props.node.type) {
++        // case "alignment":
++        //     return <AlignmentNode {...props} />;
++        // case "embed":
++        //     return <EmbedNode {...props} />;
++        // case "grid":
++        //     return <GridNode {...props} />;
++        // case "grid-row":
++        //     return <GridRowNode {...props} />;
++        // case "grid-cell":
++        //     return <GridCellNode {...props} />;
++        case "code_block":
++            return <CodeblockNode {...props} />;
++        case "line-break":
++            return <LinebreakNode {...props} />;
++        case "image":
++            return <ImageNode {...props} />;
++        case "block-quote":
++            return <BlockquoteNode {...props} />;
++        case "heading-one":
++            return <HeadingsNode {...props} />;
++        case "heading-two":
++            return <HeadingsNode {...props} />;
++        case "heading-three":
++            return <HeadingsNode {...props} />;
++        case "heading-four":
++            return <HeadingsNode {...props} />;
++        case "heading-five":
++            return <HeadingsNode {...props} />;
++        case "heading-six":
++            return <HeadingsNode {...props} />;
++        // case "imageLink":
++        //     return <ImageLinkNode {...props} />;
++        case "link":
++            return <LinkNode {...props} />;
++        case "list-item":
++            return <ListItemNode {...props} />;
++        case "ordered-list":
++            return <OrderedListNode {...props} />;
++        case "unordered-list":
++            return <UnorderedListNode {...props} />;
++    }
++};
++
++export const renderMark = props => {
++    switch (props.mark.type) {
++        case "bold":
++            return <BoldMark {...props} />;
++        case "highlight":
++            return <HighlightMark {...props} />;
++        case "italic":
++            return <ItalicMark {...props} />;
++        case "underline":
++            return <UnderlineMark {...props} />;
++    }
++};
++/* eslint-disable react/prop-types */
++
++export default ({
++    className,
++    wrapperStyle,
++    style,
++    value,
++    outerState,
++    plugins,
++    onChange,
++    children,
++    ...rest
++}) => {
++    const { readOnly } = outerState;
++
++    return (
++        <div
++            className={classnames("editor--content", className)}
++            style={wrapperStyle}
++        >
++            <Editor
++                plugins={plugins}
++                value={value}
++                onChange={onChange}
++                readOnly={readOnly}
++                outerState={outerState}
++                style={style}
++                renderNode={renderNode}
++                renderMark={renderMark}
++                decorateNode={decorateNode}
++                {...rest}
++            />
++            {children}
++        </div>
++    );
++};
+diff --git a/admin/components/Post/Editors/SlateEditor/SlateEditor.js b/admin/components/Post/Editors/SlateEditor/SlateEditor.js
+new file mode 100644
+index 0000000..d35d230
+--- /dev/null
++++ b/admin/components/Post/Editors/SlateEditor/SlateEditor.js
+@@ -0,0 +1,62 @@
++import { PropTypes } from "prop-types";
++import React, { Component } from "react";
++
++import classnames from "classnames";
++import { isFunction } from "../helper/type-check";
++import { cloneElement } from "../helper/clone";
++// import { typeCheck } from "../helper";
++
++class SlateEditor extends Component {
++    constructor(props) {
++        super(props);
++        this.state = {
++            value: this.props.value
++        };
++    }
++
++    onChange(change) {
++        const value = change.value;
++        this.setState({ value });
++        const { onChange } = this.props;
++        if (isFunction(onChange)) onChange(value);
++    }
++
++    changeState(state) {
++        this.setState(state);
++        this.props.onChange(state);
++    }
++
++    render() {
++        const { children, style, className, plugins } = this.props;
++
++        const childProps = {
++            plugins,
++            value: this.state.value,
++            outerState: this.state,
++            onChange: this.onChange.bind(this),
++            changeState: this.changeState.bind(this)
++        };
++
++        return (
++            <div
++                className={classnames("editor--root", className)}
++                style={style}
++            >
++                {cloneElement(children, childProps)}
++            </div>
++        );
++    }
++}
++
++SlateEditor.propTypes = {
++    initialState: PropTypes.object,
++    children: PropTypes.any,
++    style: PropTypes.any,
++    className: PropTypes.any,
++    plugins: PropTypes.any,
++    onChange: PropTypes.any,
++    value: PropTypes.any,
++    editorChanged: PropTypes.func
++};
++
++export default SlateEditor;
+diff --git a/admin/components/Post/Editors/SlateEditor/TextMenu.js b/admin/components/Post/Editors/SlateEditor/TextMenu.js
+new file mode 100644
+index 0000000..964db8b
+--- /dev/null
++++ b/admin/components/Post/Editors/SlateEditor/TextMenu.js
+@@ -0,0 +1,14 @@
++import React from "react";
++import classnames from "classnames";
++import { cloneElement } from "../helper/clone";
++
++/* eslint-disable react/prop-types */
++export default ({ children, style, className, menuRef, ...rest }) => (
++    <div
++        className={classnames("menu hover-menu", className)}
++        style={style}
++        ref={menuRef}
++    >
++        {cloneElement(children, rest)}
++    </div>
++);
+diff --git a/admin/components/Post/Editors/SlateEditor/ToolBar.js b/admin/components/Post/Editors/SlateEditor/ToolBar.js
+new file mode 100644
+index 0000000..926b886
+--- /dev/null
++++ b/admin/components/Post/Editors/SlateEditor/ToolBar.js
+@@ -0,0 +1,10 @@
++import React from "react";
++import classnames from "classnames";
++import { cloneElement } from "../helper/clone";
++
++/* eslint-disable react/prop-types */
++export default ({ children, style, className, ...rest }) => (
++    <div className={classnames("menu toolbar-menu", className)} style={style}>
++        {cloneElement(children, rest)}
++    </div>
++);
+diff --git a/admin/components/Post/Editors/SlateEditor/index.js b/admin/components/Post/Editors/SlateEditor/index.js
+new file mode 100644
+index 0000000..4d624f3
+--- /dev/null
++++ b/admin/components/Post/Editors/SlateEditor/index.js
+@@ -0,0 +1,3 @@
++export { default as SlateEditor } from "./SlateEditor";
++export { default as TextMenu } from "./TextMenu";
++export { default as SlateContent } from "./SlateContent";
+diff --git a/admin/components/Post/Editors/helper/clone.js b/admin/components/Post/Editors/helper/clone.js
+new file mode 100644
+index 0000000..ebac9c0
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/clone.js
+@@ -0,0 +1,23 @@
++import React from "react";
++
++export const cloneElement = (children, props) => {
++    if (children && !children.length) {
++        children = [children];
++    }
++
++    return (
++        children &&
++        children.reduce((result, child, index) => {
++            if (child) {
++                result.push(
++                    React.cloneElement(child, {
++                        ...props,
++                        key: index
++                    })
++                );
++            }
++
++            return result;
++        }, [])
++    );
++};
+diff --git a/admin/components/Post/Editors/helper/constants.js b/admin/components/Post/Editors/helper/constants.js
+new file mode 100644
+index 0000000..e3d67a1
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/constants.js
+@@ -0,0 +1,17 @@
++export const BLOCK_TAGS = {
++    blockquote: "quote",
++    p: "paragraph",
++    pre: "code_block",
++    img: "image"
++};
++
++export const MARK_TAGS = {
++    em: "italic",
++    strong: "bold",
++    u: "underline",
++    code: "highlight"
++};
++
++export const INLINE_TAGS = {
++    a: "link"
++};
+diff --git a/admin/components/Post/Editors/helper/index.js b/admin/components/Post/Editors/helper/index.js
+new file mode 100644
+index 0000000..570141d
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/index.js
+@@ -0,0 +1,2 @@
++export { default as keyboardEvent } from "./keyboard-event";
++export { default as typeCheck } from "./type-check";
+diff --git a/admin/components/Post/Editors/helper/keyboard-event.js b/admin/components/Post/Editors/helper/keyboard-event.js
+new file mode 100644
+index 0000000..2bb42c7
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/keyboard-event.js
+@@ -0,0 +1,2 @@
++export const isMod = event =>
++    (event.metaKey && !event.ctrlKey) || event.ctrlKey;
+diff --git a/admin/components/Post/Editors/helper/rules.js b/admin/components/Post/Editors/helper/rules.js
+new file mode 100644
+index 0000000..8cf1550
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/rules.js
+@@ -0,0 +1,118 @@
++import React from "react";
++import styled from "styled-components";
++import { BLOCK_TAGS, MARK_TAGS, INLINE_TAGS } from "./constants";
++import { BoldMark } from "../plugins/bold";
++
++const CodeblockContainer = styled.div`
++    position: relative;
++`;
++export default [
++    {
++        deserialize(el, next) {
++            const type = BLOCK_TAGS[el.tagName.toLowerCase()];
++            if (type) {
++                return {
++                    object: "block",
++                    type: type,
++                    data: {
++                        className: el.getAttribute("class"),
++                        src: el.getAttribute("src") || null,
++                        href: el.getAttribute("href") || null
++                    },
++                    nodes: next(el.childNodes)
++                };
++            }
++        },
++        serialize(obj, children) {
++            if (obj.object == "block") {
++                switch (obj.type) {
++                    // case "code":
++                    //     return <code>{children}</code>;
++                    case "paragraph":
++                        return (
++                            <p className={obj.data.get("className")}>
++                                {children}
++                            </p>
++                        );
++                    case "image":
++                        return (
++                            <img
++                                src={obj.data.get("src")}
++                                className={obj.data.get("className")}
++                            />
++                        );
++                    case "quote":
++                        return <blockquote>{children}</blockquote>;
++                    case "code_block":
++                        return (
++                            <CodeblockContainer>
++                                <pre className="prism-dark">
++                                    <code>{children}</code>
++                                </pre>
++                            </CodeblockContainer>
++                        );
++
++                    default:
++                        return <p />;
++                }
++            }
++        }
++    },
++    // Add a new rule that handles marks...
++    {
++        deserialize(el, next) {
++            const type = MARK_TAGS[el.tagName.toLowerCase()];
++            if (type) {
++                return {
++                    object: "mark",
++                    type: type,
++                    nodes: next(el.childNodes)
++                };
++            }
++        },
++        serialize(obj, children) {
++            if (obj.object == "mark") {
++                const props = { children };
++                switch (obj.type) {
++                    case "bold":
++                        return <BoldMark {...props} />;
++                    case "italic":
++                        return <em>{children}</em>;
++                    case "underline":
++                        return <u>{children}</u>;
++                    case "highlight":
++                        return <code>{children}</code>;
++                }
++            }
++        }
++    },
++    {
++        deserialize: function(el, next) {
++            if (el.tagName != "a") {
++                return;
++            }
++            const type = INLINE_TAGS[el.tagName];
++
++            if (!type) {
++                return;
++            }
++            return {
++                object: "inline",
++                type: type,
++                nodes: next(el.childNodes),
++                data: {
++                    href: el.attrs.find(({ name }) => name == "href").value
++                }
++            };
++        },
++        serialize: function(obj, children) {
++            if (obj.object != "inline") {
++                return;
++            }
++            switch (obj.type) {
++                case "link":
++                    return <a href={obj.data.get("href")}>{children}</a>;
++            }
++        }
++    }
++];
+diff --git a/admin/components/Post/Editors/helper/type-check.js b/admin/components/Post/Editors/helper/type-check.js
+new file mode 100644
+index 0000000..aa7dceb
+--- /dev/null
++++ b/admin/components/Post/Editors/helper/type-check.js
+@@ -0,0 +1 @@
++export const isFunction = obj => !!(obj && obj.constructor === Function);
+diff --git a/admin/components/Post/Editors/plugins/blockquote/BlockquoteButton.js b/admin/components/Post/Editors/plugins/blockquote/BlockquoteButton.js
+new file mode 100644
+index 0000000..9cf3049
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/blockquote/BlockquoteButton.js
+@@ -0,0 +1,21 @@
++import React from "react";
++import { applyBlockquote, hasBlock } from "./BlockquoteUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const BlockquoteButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            // check if this is already active
++            const isActive = hasBlock(value, type);
++            return onChange(
++                applyBlockquote(value.change(), isActive ? "paragraph" : type)
++            );
++        }}
++    >
++        <span className="material-icons">format_quote</span>
++    </span>
++);
++export default BlockquoteButton;
+diff --git a/admin/components/Post/Editors/plugins/blockquote/BlockquoteKeyboardShortcut.js b/admin/components/Post/Editors/plugins/blockquote/BlockquoteKeyboardShortcut.js
+new file mode 100644
+index 0000000..34fd776
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/blockquote/BlockquoteKeyboardShortcut.js
+@@ -0,0 +1,5 @@
++const BlockquoteKeyboardShortcut = () => {
++    return;
++};
++
++export default BlockquoteKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/blockquote/BlockquoteNode.js b/admin/components/Post/Editors/plugins/blockquote/BlockquoteNode.js
+new file mode 100644
+index 0000000..56133f0
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/blockquote/BlockquoteNode.js
+@@ -0,0 +1,7 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const BlockquoteNode = ({ attributes, children }) => (
++    <blockquote {...attributes}>{children}</blockquote>
++);
++
++export default BlockquoteNode;
+diff --git a/admin/components/Post/Editors/plugins/blockquote/BlockquoteUtils.js b/admin/components/Post/Editors/plugins/blockquote/BlockquoteUtils.js
+new file mode 100644
+index 0000000..0657e32
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/blockquote/BlockquoteUtils.js
+@@ -0,0 +1,12 @@
++export const applyBlockquote = (change, type) => change.setBlocks(type);
++
++/**
++ * Check if the any of the currently selected blocks are of `type`.
++ *
++ * @param {String} type
++ * @return {Boolean}
++ */
++
++export const hasBlock = (value, type) => {
++    return value.blocks.some(node => node.type == type);
++};
+diff --git a/admin/components/Post/Editors/plugins/blockquote/index.js b/admin/components/Post/Editors/plugins/blockquote/index.js
+new file mode 100644
+index 0000000..5bfbe4a
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/blockquote/index.js
+@@ -0,0 +1,19 @@
++import BlockquoteNode from "./BlockquoteNode";
++import BlockquoteKeyboardShortcut from "./BlockquoteKeyboardShortcut";
++import * as BlockquoteUtils from "./BlockquoteUtils";
++import BlockquoteButton from "./BlockquoteButton";
++
++/* eslint-disable no-unused-vars */
++const BlockquotePlugin = options => ({
++    onKeyDown(...args) {
++        return BlockquoteKeyboardShortcut(...args);
++    }
++});
++
++export {
++    BlockquotePlugin,
++    BlockquoteNode,
++    BlockquoteKeyboardShortcut,
++    BlockquoteUtils,
++    BlockquoteButton
++};
+diff --git a/admin/components/Post/Editors/plugins/bold/BoldButton.js b/admin/components/Post/Editors/plugins/bold/BoldButton.js
+new file mode 100644
+index 0000000..d74154b
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/bold/BoldButton.js
+@@ -0,0 +1,17 @@
++import React from "react";
++import { boldMarkStrategy } from "./BoldUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const BoldButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(boldMarkStrategy(value.change()));
++        }}
++    >
++        <span className="material-icons">format_bold</span>
++    </span>
++);
++export default BoldButton;
+diff --git a/admin/components/Post/Editors/plugins/bold/BoldKeyboardShortcut.js b/admin/components/Post/Editors/plugins/bold/BoldKeyboardShortcut.js
+new file mode 100644
+index 0000000..8387165
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/bold/BoldKeyboardShortcut.js
+@@ -0,0 +1,10 @@
++/* eslint-disable react/prop-types */
++import { boldMarkStrategy } from "./BoldUtils";
++import { isMod } from "../../helper/keyboard-event";
++
++const BoldKeyboardShortcut = (event, change) => {
++    if (isMod(event) && event.key === "b") return boldMarkStrategy(change);
++    return;
++};
++
++export default BoldKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/bold/BoldMark.js b/admin/components/Post/Editors/plugins/bold/BoldMark.js
+new file mode 100644
+index 0000000..c068f29
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/bold/BoldMark.js
+@@ -0,0 +1,5 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const BoldMark = ({ children }) => <strong>{children}</strong>;
++
++export default BoldMark;
+diff --git a/admin/components/Post/Editors/plugins/bold/BoldUtils.js b/admin/components/Post/Editors/plugins/bold/BoldUtils.js
+new file mode 100644
+index 0000000..34d59bc
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/bold/BoldUtils.js
+@@ -0,0 +1,3 @@
++export const hasMark = value => value.marks.some(mark => mark.type === "bold");
++
++export const boldMarkStrategy = change => change.toggleMark("bold").focus();
+diff --git a/admin/components/Post/Editors/plugins/bold/index.js b/admin/components/Post/Editors/plugins/bold/index.js
+new file mode 100644
+index 0000000..906610f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/bold/index.js
+@@ -0,0 +1,13 @@
++import BoldMark from "./BoldMark";
++import BoldKeyboardShortcut from "./BoldKeyboardShortcut";
++import * as BoldUtils from "./BoldUtils";
++import BoldButton from "./BoldButton";
++
++/* eslint-disable no-unused-vars */
++const BoldPlugin = options => ({
++    onKeyDown(...args) {
++        return BoldKeyboardShortcut(...args);
++    }
++});
++
++export { BoldPlugin, BoldMark, BoldKeyboardShortcut, BoldUtils, BoldButton };
+diff --git a/admin/components/Post/Editors/plugins/codeblock/CodeblockButton.js b/admin/components/Post/Editors/plugins/codeblock/CodeblockButton.js
+new file mode 100644
+index 0000000..ce03358
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/codeblock/CodeblockButton.js
+@@ -0,0 +1,25 @@
++import React from "react";
++import { applyCodeblock } from "./CodeblockUtils";
++
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const codeblockButton = ({
++    value,
++    onChange,
++    changeState,
++    style,
++    type,
++    node
++}) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(applyCodeblock(value.change()));
++        }}
++    >
++        <span className="material-icons">codeblock</span>
++    </span>
++);
++export default codeblockButton;
+diff --git a/admin/components/Post/Editors/plugins/codeblock/CodeblockKeyboardShortcut.js b/admin/components/Post/Editors/plugins/codeblock/CodeblockKeyboardShortcut.js
+new file mode 100644
+index 0000000..2b6ba17
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/codeblock/CodeblockKeyboardShortcut.js
+@@ -0,0 +1,54 @@
++export const isCodeBlock = value =>
++    value.blocks.some(block => {
++        console.log(block.type);
++        return block.type === "code_block";
++    });
++
++/* eslint-disable react/prop-types */
++const codeblockKeyboardShortcut = (event, change) => {
++    const { value } = change;
++    const { startBlock } = value;
++    if (event.key != "Enter") return;
++    if (startBlock.type != "code") return;
++    if (value.isExpanded) change.delete();
++    change.unwrapBlock("code_block");
++    change.insertText("\n");
++    return true;
++
++    // const { value } = change;
++    // const { startBlock } = value;
++    // const { texts } = value;
++    // const currentTextNode = texts.get(0);
++    // console.log(currentTextNode);
++    // if (
++    //     value.startOffset == 0 &&
++    //     !value.isExpanded &&
++    //     event.key == "Backspace"
++    // ) {
++    //     if (isCodeBlock(value)) {
++    //         return change.unwrapBlock("code_block");
++    //     }
++    // }
++    // if (value.startOffset != 0) return;
++    // if (event.key != "Enter") return;
++    // //if (startBlock.type != "code") return;
++    // if (startBlock.type == "paragraph") return;
++    // if (value.isExpanded) change.delete();
++
++    // event.preventDefault();
++    // change.setBlocks("paragraph");
++
++    // if (startBlock.type == "code_block") {
++    //     change.unwrapBlock("code_block");
++    //     change.setBlocks("paragraph");
++    // }
++    // change.insertText("\n");
++
++    // return true;
++
++    // if (!isMod(event) && event.key === "Backspace") {
++    //     console.log("Backspace");
++    // }
++};
++
++export default codeblockKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/codeblock/CodeblockNode.js b/admin/components/Post/Editors/plugins/codeblock/CodeblockNode.js
+new file mode 100644
+index 0000000..0178a1d
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/codeblock/CodeblockNode.js
+@@ -0,0 +1,48 @@
++import React from "react";
++import styled from "styled-components";
++
++const CodeblockContainer = styled.div`
++    position: relative;
++`;
++
++// const CodeblockLang = styled.div`
++//     position: absolute;
++//     right: 2px;
++//     top: 2px;
++//     font-size: 14px;
++//     padding: 4px;
++//     background-color: #eee;
++//     color: #555;
++//     border-radius: 3px;
++//     text-transform: uppercase;
++// `;
++
++/* eslint-disable react/prop-types */
++const CodeblockNode = ({ attributes, children, node, editor }) => {
++    const language = "js"; //node.data.get("language");
++    function onChange(event) {
++        editor.change(c =>
++            c.setNodeByKey(node.key, { data: { language: event.target.value } })
++        );
++    }
++
++    return (
++        <CodeblockContainer>
++            <pre className="prism-dark">
++                <code {...attributes}>{children}</code>
++            </pre>
++            <div
++                contentEditable={false}
++                style={{ position: "absolute", top: "5px", right: "5px" }}
++            >
++                <select value={language} onChange={onChange}>
++                    <option value="css">CSS</option>
++                    <option value="js">JavaScript</option>
++                    <option value="html">HTML</option>
++                </select>
++            </div>
++        </CodeblockContainer>
++    );
++};
++
++export default CodeblockNode;
+diff --git a/admin/components/Post/Editors/plugins/codeblock/CodeblockUtils.js b/admin/components/Post/Editors/plugins/codeblock/CodeblockUtils.js
+new file mode 100644
+index 0000000..c239718
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/codeblock/CodeblockUtils.js
+@@ -0,0 +1,109 @@
++import Prism from "prismjs";
++
++export const hasBlock = (value, type) => {
++    return value.blocks.some(node => node.type == type);
++};
++
++export const applyCodeblock = change => {
++    return change.wrapBlock("code_block");
++};
++
++export const decorateNode = node => {
++    if (node.type != "code_block") return;
++    let language = "javascript";
++    if (node.data.get("language")) {
++        language = node.data.get("language");
++    }
++    const grammar = Prism.languages[language];
++    const texts = node.getTexts().toArray();
++
++    // Tokenize the whole block text
++    // const texts = block.getTexts();
++    const blockText = texts.map(t => t.text).join("\n");
++    const tokens = Prism.tokenize(blockText, grammar);
++
++    // The list of decorations to return
++    const decorations = [];
++    let textStart = 0;
++    let textEnd = 0;
++
++    texts.forEach(text => {
++        textEnd = textStart + text.text.length;
++
++        let offset = 0;
++
++        function processToken(token, accu) {
++            accu = accu || "";
++
++            if (typeof token === "string") {
++                if (accu) {
++                    const decoration = createDecoration({
++                        text,
++                        textStart,
++                        textEnd,
++                        start: offset,
++                        end: offset + token.length,
++                        className: `prism-token token ${accu}`
++                    });
++                    if (decoration) {
++                        decorations.push(decoration);
++                    }
++                }
++                offset += token.length;
++            } else {
++                accu = `${accu} ${token.type} ${token.alias || ""}`;
++
++                if (typeof token.content === "string") {
++                    const decoration = createDecoration({
++                        text,
++                        textStart,
++                        textEnd,
++                        start: offset,
++                        end: offset + token.content.length,
++                        className: `prism-token token ${accu}`
++                    });
++                    if (decoration) {
++                        decorations.push(decoration);
++                    }
++
++                    offset += token.content.length;
++                } else {
++                    // When using token.content instead of token.matchedStr, token can be deep
++                    for (let i = 0; i < token.content.length; i += 1) {
++                        processToken(token.content[i], accu);
++                    }
++                }
++            }
++        }
++
++        tokens.forEach(processToken);
++        textStart = textEnd + 1; // account for added `\n`
++    });
++
++    return decorations;
++};
++/**
++ * Return a decoration range for the given text.
++ */
++function createDecoration({ text, textStart, textEnd, start, end, className }) {
++    if (start >= textEnd || end <= textStart) {
++        // Ignore, the token is not in the text
++        return null;
++    }
++
++    // Shrink to this text boundaries
++    start = Math.max(start, textStart);
++    end = Math.min(end, textEnd);
++
++    // Now shift offsets to be relative to this text
++    start -= textStart;
++    end -= textStart;
++
++    return {
++        anchorKey: text.key,
++        anchorOffset: start,
++        focusKey: text.key,
++        focusOffset: end,
++        marks: [{ type: "prism-token", data: { className } }]
++    };
++}
+diff --git a/admin/components/Post/Editors/plugins/codeblock/index.js b/admin/components/Post/Editors/plugins/codeblock/index.js
+new file mode 100644
+index 0000000..1a73f87
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/codeblock/index.js
+@@ -0,0 +1,22 @@
++import CodeblockNode from "./CodeblockNode";
++import CodeblockKeyboardShortcut from "./CodeblockKeyboardShortcut";
++import * as CodeblockUtils from "./CodeblockUtils";
++import CodeblockButton from "./CodeblockButton";
++
++/* eslint-disable no-unused-vars */
++const CodeblockPlugin = options => ({
++    onKeyDown(...args) {
++        return CodeblockKeyboardShortcut(...args);
++    },
++    decorateNode(node) {
++        return CodeblockUtils.decorateNode(node);
++    }
++});
++
++export {
++    CodeblockPlugin,
++    CodeblockNode,
++    CodeblockKeyboardShortcut,
++    CodeblockUtils,
++    CodeblockButton
++};
+diff --git a/admin/components/Post/Editors/plugins/headings/HeadingsButton.js b/admin/components/Post/Editors/plugins/headings/HeadingsButton.js
+new file mode 100644
+index 0000000..0d85450
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/headings/HeadingsButton.js
+@@ -0,0 +1,43 @@
++import React from "react";
++import { applyHeadings, hasBlock } from "./HeadingsUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const HeadingsButton = ({ value, onChange, changeState, style, type }) => {
++    return (
++        <span
++            style={style}
++            className="button"
++            type={type}
++            onMouseDown={e => {
++                // check if this is already active
++                const isActive = hasBlock(value, type);
++                return onChange(
++                    applyHeadings(value.change(), isActive ? "paragraph" : type)
++                );
++            }}
++        >
++            <span className="material-icons">{getType(type)}</span>
++        </span>
++    );
++};
++
++const getType = type => {
++    switch (type) {
++        case "heading-one":
++            return "looks_one";
++        case "heading-two":
++            return "looks_two";
++        case "heading-three":
++            return "looks_3";
++        case "heading-four":
++            return "looks_4";
++        case "heading-five":
++            return "looks_5";
++        case "heading-six":
++            return "looks_6";
++
++        default:
++            break;
++    }
++};
++export default HeadingsButton;
+diff --git a/admin/components/Post/Editors/plugins/headings/HeadingsKeyboardShortcut.js b/admin/components/Post/Editors/plugins/headings/HeadingsKeyboardShortcut.js
+new file mode 100644
+index 0000000..34fd776
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/headings/HeadingsKeyboardShortcut.js
+@@ -0,0 +1,5 @@
++const BlockquoteKeyboardShortcut = () => {
++    return;
++};
++
++export default BlockquoteKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/headings/HeadingsNode.js b/admin/components/Post/Editors/plugins/headings/HeadingsNode.js
+new file mode 100644
+index 0000000..e1cd74d
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/headings/HeadingsNode.js
+@@ -0,0 +1,20 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const HeadingsNode = ({ attributes, children, node }) => {
++    switch (node.type) {
++        case "heading-one":
++            return <h1 {...attributes}>{children}</h1>;
++        case "heading-two":
++            return <h2 {...attributes}>{children}</h2>;
++        case "heading-three":
++            return <h3 {...attributes}>{children}</h3>;
++        case "heading-four":
++            return <h4 {...attributes}>{children}</h4>;
++        case "heading-five":
++            return <h5 {...attributes}>{children}</h5>;
++        case "heading-six":
++            return <h6 {...attributes}>{children}</h6>;
++    }
++};
++
++export default HeadingsNode;
+diff --git a/admin/components/Post/Editors/plugins/headings/HeadingsUtils.js b/admin/components/Post/Editors/plugins/headings/HeadingsUtils.js
+new file mode 100644
+index 0000000..bbc0fd1
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/headings/HeadingsUtils.js
+@@ -0,0 +1,12 @@
++export const applyHeadings = (change, type) => change.setBlocks(type);
++
++/**
++ * Check if the any of the currently selected blocks are of `type`.
++ *
++ * @param {String} type
++ * @return {Boolean}
++ */
++
++export const hasBlock = (value, type) => {
++    return value.blocks.some(node => node.type == type);
++};
+diff --git a/admin/components/Post/Editors/plugins/headings/index.js b/admin/components/Post/Editors/plugins/headings/index.js
+new file mode 100644
+index 0000000..0dcd7ab
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/headings/index.js
+@@ -0,0 +1,18 @@
++import HeadingsNode from "./HeadingsNode";
++import HeadingsKeyboardShortcut from "./HeadingsKeyboardShortcut";
++import * as HeadingsUtils from "./HeadingsUtils";
++import HeadingsButton from "./HeadingsButton";
++/* eslint-disable no-unused-vars */
++const HeadingsPlugin = options => ({
++    onKeyDown(...args) {
++        return HeadingsKeyboardShortcut(...args);
++    }
++});
++
++export {
++    HeadingsPlugin,
++    HeadingsNode,
++    HeadingsKeyboardShortcut,
++    HeadingsUtils,
++    HeadingsButton
++};
+diff --git a/admin/components/Post/Editors/plugins/highlight/HighlightButton.js b/admin/components/Post/Editors/plugins/highlight/HighlightButton.js
+new file mode 100644
+index 0000000..1f86a55
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/highlight/HighlightButton.js
+@@ -0,0 +1,17 @@
++import React from "react";
++import { highlightMarkStrategy } from "./HighlightUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const highlightButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(highlightMarkStrategy(value.change()));
++        }}
++    >
++        <span className="material-icons">code</span>
++    </span>
++);
++export default highlightButton;
+diff --git a/admin/components/Post/Editors/plugins/highlight/HighlightKeyboardShortcut.js b/admin/components/Post/Editors/plugins/highlight/HighlightKeyboardShortcut.js
+new file mode 100644
+index 0000000..9369f14
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/highlight/HighlightKeyboardShortcut.js
+@@ -0,0 +1,6 @@
++/* eslint-disable react/prop-types */
++const highlightKeyboardShortcut = () => {
++    return;
++};
++
++export default highlightKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/highlight/HighlightMark.js b/admin/components/Post/Editors/plugins/highlight/HighlightMark.js
+new file mode 100644
+index 0000000..336fef1
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/highlight/HighlightMark.js
+@@ -0,0 +1,5 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const highlightMark = ({ children }) => <code>{children}</code>;
++
++export default highlightMark;
+diff --git a/admin/components/Post/Editors/plugins/highlight/HighlightUtils.js b/admin/components/Post/Editors/plugins/highlight/HighlightUtils.js
+new file mode 100644
+index 0000000..b37af5f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/highlight/HighlightUtils.js
+@@ -0,0 +1,5 @@
++export const hasMark = value =>
++    value.marks.some(mark => mark.type === "highlight");
++
++export const highlightMarkStrategy = change =>
++    change.toggleMark("highlight").focus();
+diff --git a/admin/components/Post/Editors/plugins/highlight/index.js b/admin/components/Post/Editors/plugins/highlight/index.js
+new file mode 100644
+index 0000000..44e0b1f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/highlight/index.js
+@@ -0,0 +1,19 @@
++import HighlightMark from "./HighlightMark";
++import HighlightKeyboardShortcut from "./HighlightKeyboardShortcut";
++import * as HighlightUtils from "./HighlightUtils";
++import HighlightButton from "./HighlightButton";
++
++/* eslint-disable no-unused-vars */
++const HighlightPlugin = options => ({
++    onKeyDown(...args) {
++        return HighlightKeyboardShortcut(...args);
++    }
++});
++
++export {
++    HighlightPlugin,
++    HighlightMark,
++    HighlightKeyboardShortcut,
++    HighlightUtils,
++    HighlightButton
++};
+diff --git a/admin/components/Post/Editors/plugins/image/ImageButton.js b/admin/components/Post/Editors/plugins/image/ImageButton.js
+new file mode 100644
+index 0000000..e1637e0
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/image/ImageButton.js
+@@ -0,0 +1,67 @@
++import React from "react";
++import FileExplorerModal from "../../../../Modals/FileExplorerModal";
++import { insertInlineImage } from "./ImageUtils";
++import { uploadFile } from "../../../../../util";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++
++class ImageButton extends React.Component {
++    imageInputRef = React.createRef();
++
++    state = {
++        fileExplorerOpen: false
++    };
++
++    insertMedia = src => {
++        this.props.onChange(
++            insertInlineImage({ change: this.props.value.change(), src })
++        );
++        this.toggleFileExplorer();
++    };
++
++    toggleFileExplorer = () => {
++        this.setState({ fileExplorerOpen: !this.state.fileExplorerOpen });
++    };
++
++    uploadImage = async files => {
++        const uploadedFiles = await uploadFile({ files, type: "post_image" });
++        uploadedFiles.forEach(src => {
++            this.props.onChange(
++                insertInlineImage({ change: this.props.value.change(), src })
++            );
++        });
++    };
++    render() {
++        const { value, onChange, changeState, style, type } = this.props;
++        return (
++            <React.Fragment>
++                <span
++                    style={style}
++                    className="button"
++                    type={type}
++                    onMouseDown={this.toggleFileExplorer}
++                >
++                    <span className="material-icons">image</span>
++                </span>
++                <input
++                    ref={this.imageInputRef}
++                    className="hide post-image"
++                    type="file"
++                    multiple
++                    onChange={input => this.uploadImage(input.target.files)}
++                />
++                {this.state.fileExplorerOpen && (
++                    <FileExplorerModal
++                        onClose={this.toggleFileExplorer}
++                        onMediaSelect={this.insertMedia}
++                        addNewMedia={() => {
++                            this.imageInputRef.current.click();
++                            this.toggleFileExplorer();
++                        }}
++                    />
++                )}
++            </React.Fragment>
++        );
++    }
++}
++export default ImageButton;
+diff --git a/admin/components/Post/Editors/plugins/image/ImageKeyboardShortcut.js b/admin/components/Post/Editors/plugins/image/ImageKeyboardShortcut.js
+new file mode 100644
+index 0000000..b42c1cf
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/image/ImageKeyboardShortcut.js
+@@ -0,0 +1,12 @@
++// import { keyboardEvent } from "@slate-editor/utils";
++import { forceClickUploadButton } from "./ImageUtils";
++import { isMod } from "../../helper/keyboard-event";
++
++const ImageKeyboardShortcut = (event, change, editor) => {
++    if (isMod(event) && event.shiftKey && event.key === "i") {
++        return forceClickUploadButton(editor);
++    }
++    return;
++};
++
++export default ImageKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/image/ImageNode.js b/admin/components/Post/Editors/plugins/image/ImageNode.js
+new file mode 100644
+index 0000000..bb521d2
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/image/ImageNode.js
+@@ -0,0 +1,7 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const ImageNode = props => {
++    return <img src={props.node.data.get("src")} />;
++};
++
++export default ImageNode;
+diff --git a/admin/components/Post/Editors/plugins/image/ImageUtils.js b/admin/components/Post/Editors/plugins/image/ImageUtils.js
+new file mode 100644
+index 0000000..3ea2d53
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/image/ImageUtils.js
+@@ -0,0 +1,36 @@
++export const insertInlineImage = ({ change, src }) => {
++    return change.insertBlock({
++        type: "image",
++        isVoid: true,
++        data: { src }
++    });
++};
++
++export const updateInlineImage = ({
++    change,
++    data: { src, title, href, openExternal }
++}) => {
++    return href
++        ? change.setInline({
++              type: "imageLink",
++              isVoid: true,
++              data: { src, title, href, openExternal }
++          })
++        : change.setInline({
++              type: "image",
++              isVoid: true,
++              data: { src, title, openExternal }
++          });
++};
++
++export const deleteInlineImage = ({ change }) => {
++    return change.deleteBackward(1);
++};
++
++export const forceClickUploadButton = editor => {
++    window.document
++        .getElementById(
++            `slate-image-plugin-button-${editor.props.outerState.uid}`
++        )
++        .click();
++};
+diff --git a/admin/components/Post/Editors/plugins/image/index.js b/admin/components/Post/Editors/plugins/image/index.js
+new file mode 100644
+index 0000000..d47c921
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/image/index.js
+@@ -0,0 +1,19 @@
++import ImageNode from "./ImageNode";
++import ImageKeyboardShortcut from "./ImageKeyboardShortcut";
++import * as ImageUtils from "./ImageUtils";
++import ImageButton from "./ImageButton";
++
++/* eslint-disable no-unused-vars */
++const ImagePlugin = options => ({
++    onKeyDown(...args) {
++        return ImageKeyboardShortcut(...args);
++    }
++});
++
++export {
++    ImagePlugin,
++    ImageNode,
++    ImageKeyboardShortcut,
++    ImageUtils,
++    ImageButton
++};
+diff --git a/admin/components/Post/Editors/plugins/italic/ItalicButton.js b/admin/components/Post/Editors/plugins/italic/ItalicButton.js
+new file mode 100644
+index 0000000..184f671
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/italic/ItalicButton.js
+@@ -0,0 +1,17 @@
++import React from "react";
++import { italicMarkStrategy } from "./ItalicUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const ItalicButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(italicMarkStrategy(value.change()));
++        }}
++    >
++        <span className="material-icons">format_italic</span>
++    </span>
++);
++export default ItalicButton;
+diff --git a/admin/components/Post/Editors/plugins/italic/ItalicKeyboardShortcut.js b/admin/components/Post/Editors/plugins/italic/ItalicKeyboardShortcut.js
+new file mode 100644
+index 0000000..03a8a93
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/italic/ItalicKeyboardShortcut.js
+@@ -0,0 +1,10 @@
++/* eslint-disable react/prop-types */
++import { italicMarkStrategy } from "./ItalicUtils";
++import { isMod } from "../../helper/keyboard-event";
++
++const ItalicKeyboardShortcut = (event, change) => {
++    if (isMod(event) && event.key === "i") return italicMarkStrategy(change);
++    return;
++};
++
++export default ItalicKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/italic/ItalicMark.js b/admin/components/Post/Editors/plugins/italic/ItalicMark.js
+new file mode 100644
+index 0000000..954da0c
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/italic/ItalicMark.js
+@@ -0,0 +1,5 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const ItalicMark = ({ children }) => <em>{children}</em>;
++
++export default ItalicMark;
+diff --git a/admin/components/Post/Editors/plugins/italic/ItalicUtils.js b/admin/components/Post/Editors/plugins/italic/ItalicUtils.js
+new file mode 100644
+index 0000000..4f04dd7
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/italic/ItalicUtils.js
+@@ -0,0 +1,4 @@
++export const hasMark = value =>
++    value.marks.some(mark => mark.type === "italic");
++
++export const italicMarkStrategy = change => change.toggleMark("italic").focus();
+diff --git a/admin/components/Post/Editors/plugins/italic/index.js b/admin/components/Post/Editors/plugins/italic/index.js
+new file mode 100644
+index 0000000..b299f0d
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/italic/index.js
+@@ -0,0 +1,19 @@
++import ItalicMark from "./ItalicMark";
++import ItalicKeyboardShortcut from "./ItalicKeyboardShortcut";
++import * as ItalicUtils from "./ItalicUtils";
++import ItalicButton from "./ItalicButton";
++
++/* eslint-disable no-unused-vars */
++const ItalicPlugin = options => ({
++    onKeyDown(...args) {
++        return ItalicKeyboardShortcut(...args);
++    }
++});
++
++export {
++    ItalicPlugin,
++    ItalicMark,
++    ItalicKeyboardShortcut,
++    ItalicUtils,
++    ItalicButton
++};
+diff --git a/admin/components/Post/Editors/plugins/linebreak/LinebreakButton.js b/admin/components/Post/Editors/plugins/linebreak/LinebreakButton.js
+new file mode 100644
+index 0000000..6f60093
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/linebreak/LinebreakButton.js
+@@ -0,0 +1,17 @@
++import React from "react";
++import { applyLinebreak } from "./LinebreakUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const LinebreakButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(applyLinebreak(value.change(), type));
++        }}
++    >
++        <span className="material-icons">more_horiz</span>
++    </span>
++);
++export default LinebreakButton;
+diff --git a/admin/components/Post/Editors/plugins/linebreak/LinebreakKeyboardShortcut.js b/admin/components/Post/Editors/plugins/linebreak/LinebreakKeyboardShortcut.js
+new file mode 100644
+index 0000000..34fd776
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/linebreak/LinebreakKeyboardShortcut.js
+@@ -0,0 +1,5 @@
++const BlockquoteKeyboardShortcut = () => {
++    return;
++};
++
++export default BlockquoteKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/linebreak/LinebreakNode.js b/admin/components/Post/Editors/plugins/linebreak/LinebreakNode.js
+new file mode 100644
+index 0000000..ae07504
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/linebreak/LinebreakNode.js
+@@ -0,0 +1,9 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const LinebreakNode = ({ attributes }) => (
++    <div {...attributes} style={{ fontSize: 20, textAlign: "center" }}>
++        ---
++    </div>
++);
++
++export default LinebreakNode;
+diff --git a/admin/components/Post/Editors/plugins/linebreak/LinebreakUtils.js b/admin/components/Post/Editors/plugins/linebreak/LinebreakUtils.js
+new file mode 100644
+index 0000000..38a6e5f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/linebreak/LinebreakUtils.js
+@@ -0,0 +1,5 @@
++export const applyLinebreak = (change, type = "line-break") =>
++    change.insertBlock({
++        type: type,
++        isVoid: true
++    });
+diff --git a/admin/components/Post/Editors/plugins/linebreak/index.js b/admin/components/Post/Editors/plugins/linebreak/index.js
+new file mode 100644
+index 0000000..6ff8df3
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/linebreak/index.js
+@@ -0,0 +1,20 @@
++import LinebreakNode from "./LinebreakNode";
++import LinebreakKeyboardShortcut from "./LinebreakKeyboardShortcut";
++import LinebreakButton from "./LinebreakButton";
++
++import * as LinebreakUtils from "./LinebreakUtils";
++
++/* eslint-disable no-unused-vars */
++const LinebreakPlugin = options => ({
++    onKeyDown(...args) {
++        return LinebreakKeyboardShortcut(...args);
++    }
++});
++
++export {
++    LinebreakPlugin,
++    LinebreakNode,
++    LinebreakKeyboardShortcut,
++    LinebreakUtils,
++    LinebreakButton
++};
+diff --git a/admin/components/Post/Editors/plugins/link/LinkButton.js b/admin/components/Post/Editors/plugins/link/LinkButton.js
+new file mode 100644
+index 0000000..b98ced2
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/link/LinkButton.js
+@@ -0,0 +1,19 @@
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++import React from "react";
++import classnames from "classnames";
++
++import { insertLinkStrategy, hasLinks } from "./LinkUtils";
++
++const LinkButton = ({ value, onChange, className, style, type }) => (
++    <span
++        style={style}
++        type={type}
++        onMouseDown={() => onChange(insertLinkStrategy(value.change()))}
++        className={classnames("button", { active: hasLinks(value) }, className)}
++    >
++        <span className="material-icons">insert_link</span>
++    </span>
++);
++
++export default LinkButton;
+diff --git a/admin/components/Post/Editors/plugins/link/LinkKeyboardShortcut.js b/admin/components/Post/Editors/plugins/link/LinkKeyboardShortcut.js
+new file mode 100644
+index 0000000..df32a71
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/link/LinkKeyboardShortcut.js
+@@ -0,0 +1,10 @@
++/* eslint-disable react/prop-types */
++import { isMod } from "../../helper/keyboard-event";
++import { insertLinkStrategy } from "./LinkUtils";
++
++const LinkKeyboardShortcut = (event, change) => {
++    if (isMod(event) && event.key === "k") return insertLinkStrategy(change);
++    return;
++};
++
++export default LinkKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/link/LinkNode.js b/admin/components/Post/Editors/plugins/link/LinkNode.js
+new file mode 100644
+index 0000000..9308a3f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/link/LinkNode.js
+@@ -0,0 +1,10 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const LinkNode = ({ attributes, node, children }) => (
++    <a {...attributes} className="link-node" href={node.data.get("href")}>
++        {children}
++    </a>
++);
++
++export default LinkNode;
+diff --git a/admin/components/Post/Editors/plugins/link/LinkUtils.js b/admin/components/Post/Editors/plugins/link/LinkUtils.js
+new file mode 100644
+index 0000000..e769612
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/link/LinkUtils.js
+@@ -0,0 +1,63 @@
++export const httpPreffixStrategy = href =>
++    href.search("https?://") >= 0 ? href : `http://${href}`;
++export const hasLinks = value =>
++    value.inlines.some(inline => inline.type === "link");
++export const getLink = value =>
++    value.inlines.filter(inline => inline.type === "link").first();
++export const createLink = data => ({ type: "link", data });
++export const hasMultiBlocks = value => value.blocks.size > 1;
++
++export const unlink = change => change.unwrapInline("link").focus();
++
++export const updateLinkStrategy = ({
++    change,
++    data: { title, href, text, target }
++}) => {
++    const { value } = change;
++
++    if (value.isCollapsed) {
++        change.moveOffsetsTo(0, value.anchorText.characters.size);
++    }
++
++    change.insertText(text).setInline({
++        type: "link",
++        data: { title, href, text, target }
++    });
++
++    return change;
++};
++function wrapLink(change, href) {
++    change.wrapInline({
++        type: "link",
++        data: { href }
++    });
++
++    change.collapseToEnd();
++}
++export const insertLinkStrategy = change => {
++    const { value } = change;
++
++    if (hasLinks(value)) {
++        change.unwrapInline("link");
++    } else if (value.isExpanded && !hasMultiBlocks(value)) {
++        const href = window.prompt("Enter the URL of the link:");
++        change.call(wrapLink, href);
++        //change.wrapInline(createLink({ target: "_blank", openModal: true }));
++    } else if (hasMultiBlocks(value)) {
++        console.info("[SlateJS][LinkPlugin] has multiple blocks on selection");
++    } else if (value.isCollapsed && !hasLinks(value)) {
++        console.info(
++            "[SlateJS][LinkPlugin] selection collapsed, w/o links on selection"
++        );
++    } else {
++        const href = window.prompt("Enter the URL of the link:");
++        const text = window.prompt("Enter the text for the link:");
++
++        change
++            .insertText(text)
++            .extend(0 - text.length)
++            .call(wrapLink, href);
++    }
++
++    return change;
++};
+diff --git a/admin/components/Post/Editors/plugins/link/index.js b/admin/components/Post/Editors/plugins/link/index.js
+new file mode 100644
+index 0000000..2149d58
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/link/index.js
+@@ -0,0 +1,13 @@
++import LinkNode from "./LinkNode";
++import LinkKeyboardShortcut from "./LinkKeyboardShortcut";
++import * as LinkUtils from "./LinkUtils";
++import LinkButton from "./LinkButton";
++
++/* eslint-disable no-unused-vars */
++const LinkPlugin = options => ({
++    onKeyDown(...args) {
++        return LinkKeyboardShortcut(...args);
++    }
++});
++
++export { LinkPlugin, LinkNode, LinkKeyboardShortcut, LinkUtils, LinkButton };
+diff --git a/admin/components/Post/Editors/plugins/list/ListButtonBar.css b/admin/components/Post/Editors/plugins/list/ListButtonBar.css
+new file mode 100644
+index 0000000..ccc5354
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/ListButtonBar.css
+@@ -0,0 +1,3 @@
++.slate-list-plugin--button-bar {
++    display: inline-block;
++}
+diff --git a/admin/components/Post/Editors/plugins/list/ListButtonBar.js b/admin/components/Post/Editors/plugins/list/ListButtonBar.js
+new file mode 100644
+index 0000000..0dd3910
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/ListButtonBar.js
+@@ -0,0 +1,14 @@
++import React from "react";
++
++import { UnorderedListButton, OrderedListButton } from "./";
++// FIXME: Needs to handle assets files to work with SSR
++if (require("exenv").canUseDOM) require("./ListButtonBar.css");
++
++const ListButtonBar = props => (
++    <React.Fragment>
++        <UnorderedListButton {...props} />
++        <OrderedListButton {...props} />
++    </React.Fragment>
++);
++
++export default ListButtonBar;
+diff --git a/admin/components/Post/Editors/plugins/list/ListItemNode.js b/admin/components/Post/Editors/plugins/list/ListItemNode.js
+new file mode 100644
+index 0000000..d0d8a90
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/ListItemNode.js
+@@ -0,0 +1,7 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const ListItemNode = ({ attributes, children }) => (
++    <li {...attributes}>{children}</li>
++);
++
++export default ListItemNode;
+diff --git a/admin/components/Post/Editors/plugins/list/ListKeyboardShortcut.js b/admin/components/Post/Editors/plugins/list/ListKeyboardShortcut.js
+new file mode 100644
+index 0000000..1e72e9f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/ListKeyboardShortcut.js
+@@ -0,0 +1,59 @@
++import {
++    unorderedListStrategy,
++    orderedListStrategy,
++    increaseListDepthStrategy,
++    decreaseListDepthStrategy
++} from "./ListUtils";
++
++export const onBackspace = (event, change) => {
++    const { value } = change;
++    if (value.isExpanded) return;
++    if (value.startOffset != 0) return;
++
++    const { startBlock } = value;
++    if (startBlock.type == "paragraph") return;
++
++    event.preventDefault();
++    change.setBlocks("paragraph");
++
++    if (startBlock.type == "list-item") {
++        change.unwrapBlock("ordered-list");
++    }
++
++    return true;
++};
++
++const ListKeyboardShortcut = (event, change) => {
++    //
++    // Behaviour to increase or decrease depth of the list.
++    //
++    if (event.key === "Tab") {
++        event.preventDefault();
++        if (event.shiftKey) return decreaseListDepthStrategy(change);
++        return increaseListDepthStrategy(change);
++    } else if (event.key === "Enter" || event.key === "Backspace") {
++        const { value } = change;
++        if (value.isExpanded) return;
++
++        const { startBlock, startOffset } = value;
++        if (startOffset == 0 && startBlock.text.length == 0) {
++            return onBackspace(event, change);
++        }
++    }
++
++    const unorderedKey = event.key === "l";
++    const macUnordered = event.ctrlKey && event.shiftKey && unorderedKey;
++    const winUnordered = event.altKey && event.shiftKey && unorderedKey;
++    const isUnordered = macUnordered || winUnordered;
++    if (isUnordered) return unorderedListStrategy(change);
++
++    const orderedKey = event.key === "n";
++    const macOrdered = event.ctrlKey && event.shiftKey && orderedKey;
++    const winOrdered = event.altKey && event.shiftKey && orderedKey;
++    const isOrdered = macOrdered || winOrdered;
++    if (isOrdered) return orderedListStrategy(change);
++
++    return;
++};
++
++export default ListKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/list/ListUtils.js b/admin/components/Post/Editors/plugins/list/ListUtils.js
+new file mode 100644
+index 0000000..483714f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/ListUtils.js
+@@ -0,0 +1,120 @@
++export const isList = value =>
++    value.blocks.some(block => block.type === "list-item");
++
++export const hasParentOfType = (value, type) =>
++    value.blocks.some(
++        block =>
++            !!value.document.getClosest(
++                block.key,
++                parent => parent.type === type
++            )
++    );
++export const isUnorderedList = value =>
++    hasParentOfType(value, "unordered-list");
++export const isOrderedList = value => hasParentOfType(value, "ordered-list");
++
++export const getNodeOfType = (value, type) =>
++    value.blocks.filter(block => block.type === type).first();
++export const getUnorderedListNode = value =>
++    getNodeOfType(value, "unordered-list");
++export const getOrderedListNode = value => getNodeOfType(value, "ordered-list");
++
++export const removeUnorderedList = change =>
++    change
++        .setBlocks("paragraph")
++        .unwrapBlock("unordered-list")
++        .focus();
++
++export const switchToOrderedList = change =>
++    change
++        .unwrapBlock("unordered-list")
++        .wrapBlock("ordered-list")
++        .focus();
++
++export const removeOrderedList = change =>
++    change
++        .setBlocks("paragraph")
++        .unwrapBlock("ordered-list")
++        .focus();
++
++export const switchToUnorderedList = change =>
++    change
++        .wrapBlock("unordered-list")
++        .unwrapBlock("ordered-list")
++        .focus();
++
++export const applyList = (change, type) =>
++    change
++        .setBlocks("list-item")
++        .wrapBlock(type)
++        .focus();
++
++export const onlyRemove = (change, type) => change.unwrapBlock(type).focus();
++export const onlyRemoveUnorderedList = change =>
++    onlyRemove(change, "unordered-list");
++export const onlyRemoveOrderedList = change =>
++    onlyRemove(change, "ordered-list");
++
++export const applyUnorderedList = change => applyList(change, "unordered-list");
++export const applyOrderedList = change => applyList(change, "ordered-list");
++
++const deepRemoveList = change => {
++    const { value } = change;
++    const { document } = value;
++    const node = getNodeOfType(value, "list-item");
++    const depth = document.getDepth(node.key);
++
++    Array(depth)
++        .fill(".")
++        .forEach(() => {
++            const parent = document.getParent(node.key);
++            if (parent.type === "unordered-list") removeUnorderedList(change);
++            else removeOrderedList(change);
++        });
++    return change;
++};
++
++export const unorderedListStrategy = change => {
++    const { value } = change;
++    if (!isList(value)) return applyList(change, "unordered-list");
++
++    if (isUnorderedList(value)) return deepRemoveList(change);
++    if (isOrderedList(value)) return switchToUnorderedList(change);
++    console.info("[SlateJS][ListPlugin] It is a different type of list.");
++    return change;
++};
++
++export const orderedListStrategy = change => {
++    const { value } = change;
++    // If it is not a list yet, transform it!
++    if (!isList(value)) return applyList(change, "ordered-list");
++
++    // If it is already a list, handle it!
++    if (isOrderedList(value)) return deepRemoveList(change);
++    else if (isUnorderedList(value)) return switchToOrderedList(change);
++    else console.info("[SlateJS][ListPlugin] It is a different type of list.");
++    return change;
++};
++
++export const increaseListDepthStrategy = change => {
++    const { value } = change;
++    // If it is not a list, kill the action immediately.
++    if (!isList(value)) return change;
++
++    if (isUnorderedList(value)) return applyUnorderedList(change);
++    if (isOrderedList(value)) return applyOrderedList(change);
++    return change;
++};
++
++export const decreaseListDepthStrategy = change => {
++    const { value } = change;
++    // If it is not a list, kill the action immediately.
++    if (!isList(value)) return change;
++
++    const node = getNodeOfType(value, "list-item");
++    const depth = value.document.getDepth(node.key);
++    if (isUnorderedList(value) && depth > 2)
++        return onlyRemoveUnorderedList(change);
++    if (isOrderedList(value) && depth > 2) return onlyRemoveOrderedList(change);
++    return change;
++};
+diff --git a/admin/components/Post/Editors/plugins/list/OrderedListButton.js b/admin/components/Post/Editors/plugins/list/OrderedListButton.js
+new file mode 100644
+index 0000000..574a225
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/OrderedListButton.js
+@@ -0,0 +1,23 @@
++import React from "react";
++import classnames from "classnames";
++
++import { orderedListStrategy, isOrderedList } from "./ListUtils";
++/* eslint-disable react/prop-types */
++const OrderedListButton = ({ value, onChange, className, style, type }) => (
++    <span
++        style={style}
++        type={type}
++        onMouseDown={() =>
++            onChange(orderedListStrategy(value.change(), "ordered-list"))
++        }
++        className={classnames(
++            "button slate-list-plugin--button",
++            { active: isOrderedList(value) },
++            className
++        )}
++    >
++        <span className="material-icons">format_list_numbered</span>
++    </span>
++);
++
++export default OrderedListButton;
+diff --git a/admin/components/Post/Editors/plugins/list/OrderedListNode.js b/admin/components/Post/Editors/plugins/list/OrderedListNode.js
+new file mode 100644
+index 0000000..e25b096
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/OrderedListNode.js
+@@ -0,0 +1,7 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const OrderedListNode = ({ attributes, children }) => (
++    <ol {...attributes}>{children}</ol>
++);
++
++export default OrderedListNode;
+diff --git a/admin/components/Post/Editors/plugins/list/UnorderedListButton.js b/admin/components/Post/Editors/plugins/list/UnorderedListButton.js
+new file mode 100644
+index 0000000..28ec8ba
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/UnorderedListButton.js
+@@ -0,0 +1,22 @@
++import React from "react";
++
++import classnames from "classnames";
++
++import { unorderedListStrategy, isUnorderedList } from "./ListUtils";
++/* eslint-disable react/prop-types */
++const UnorderedListButton = ({ value, onChange, className, style, type }) => (
++    <span
++        style={style}
++        type={type}
++        onMouseDown={() => onChange(unorderedListStrategy(value.change()))}
++        className={classnames(
++            "button slate-list-plugin--button",
++            { active: isUnorderedList(value) },
++            className
++        )}
++    >
++        <span className="material-icons">format_list_bulleted</span>
++    </span>
++);
++
++export default UnorderedListButton;
+diff --git a/admin/components/Post/Editors/plugins/list/UnorderedListNode.js b/admin/components/Post/Editors/plugins/list/UnorderedListNode.js
+new file mode 100644
+index 0000000..2f97eef
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/UnorderedListNode.js
+@@ -0,0 +1,7 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const UnorderedListNode = ({ attributes, children }) => (
++    <ul {...attributes}>{children}</ul>
++);
++
++export default UnorderedListNode;
+diff --git a/admin/components/Post/Editors/plugins/list/index.js b/admin/components/Post/Editors/plugins/list/index.js
+new file mode 100644
+index 0000000..c0f1701
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/list/index.js
+@@ -0,0 +1,37 @@
++//
++// Rendering
++//
++import ListItemNode from "./ListItemNode";
++import OrderedListNode from "./OrderedListNode";
++import UnorderedListNode from "./UnorderedListNode";
++
++//
++// Keyboard
++//
++import ListKeyboardShortcut from "./ListKeyboardShortcut";
++
++//
++// External
++//
++import * as ListUtils from "./ListUtils";
++import ListButtonBar from "./ListButtonBar";
++import UnorderedListButton from "./UnorderedListButton";
++import OrderedListButton from "./OrderedListButton";
++/* eslint-disable no-unused-vars */
++const ListPlugin = options => ({
++    onKeyDown(...args) {
++        return ListKeyboardShortcut(...args);
++    }
++});
++
++export {
++    ListPlugin,
++    ListItemNode,
++    OrderedListNode,
++    UnorderedListNode,
++    ListKeyboardShortcut,
++    ListUtils,
++    ListButtonBar,
++    UnorderedListButton,
++    OrderedListButton
++};
+diff --git a/admin/components/Post/Editors/plugins/markdown/MarkdownKeyboardShortcut.js b/admin/components/Post/Editors/plugins/markdown/MarkdownKeyboardShortcut.js
+new file mode 100644
+index 0000000..2b0c1f2
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/MarkdownKeyboardShortcut.js
+@@ -0,0 +1,16 @@
++import { onSpace, onBackspace, onEnter } from "./MarkdownUtils";
++
++const MarkdownKeyboardShortcut = (event, change) => {
++    switch (event.key) {
++        case " ":
++            return onSpace(event, change);
++        case "Backspace":
++            return onBackspace(event, change);
++        case "Enter":
++            return onEnter(event, change);
++    }
++
++    return;
++};
++
++export default MarkdownKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/markdown/MarkdownNode.js b/admin/components/Post/Editors/plugins/markdown/MarkdownNode.js
+new file mode 100644
+index 0000000..a65aab9
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/MarkdownNode.js
+@@ -0,0 +1,26 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const MarkdownNode = ({ attributes, children, node }) => {
++    switch (node.type) {
++        case "block-quote":
++            return <blockquote {...attributes}>{children}</blockquote>;
++        case "bulleted-list":
++            return <ul {...attributes}>{children}</ul>;
++        // case "heading-one":
++        //     return <h1 {...attributes}>{children}</h1>;
++        // case "heading-two":
++        //     return <h2 {...attributes}>{children}</h2>;
++        // case "heading-three":
++        //     return <h3 {...attributes}>{children}</h3>;
++        // case "heading-four":
++        //     return <h4 {...attributes}>{children}</h4>;
++        // case "heading-five":
++        //     return <h5 {...attributes}>{children}</h5>;
++        // case "heading-six":
++        // return <h6 {...attributes}>{children}</h6>;
++        case "list-item":
++            return <li {...attributes}>{children}</li>;
++    }
++};
++
++export default MarkdownNode;
+diff --git a/admin/components/Post/Editors/plugins/markdown/MarkdownUtils.js b/admin/components/Post/Editors/plugins/markdown/MarkdownUtils.js
+new file mode 100644
+index 0000000..396cd82
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/MarkdownUtils.js
+@@ -0,0 +1,221 @@
++// import matchBlockquote from "./match/blockquote";
++import matchCodeBlock from "./match/codeBlock";
++import matchCode from "./match/code";
++// import matchHeader from "./match/header";
++import matchBold from "./match/bold";
++import matchItalic from "./match/italic";
++// import matchStrikeThrough from "./match/strikethrough";
++import matchBoldItalic from "./match/boldItalic";
++import matchHr from "./match/hr";
++import matchImage from "./match/image";
++import matchLink from "./match/link";
++// import matchList from "./match/list";
++
++/**
++ * On space, if it was after an auto-markdown shortcut, convert the current
++ * node into the shortcut's corresponding type.
++ *
++ * @param {Event} event
++ * @param {Change} change
++ */
++
++export const onSpace = (event, change) => {
++    const { value } = change;
++    if (value.isExpanded) return;
++
++    // const { startBlock, startOffset } = value;
++    // const currentLineText = startBlock.text
++    //     .slice(0, startOffset)
++    //     .replace(/\s*/g, "");
++    const { texts } = value;
++    const currentTextNode = texts.get(0);
++    const currentLineText = currentTextNode.text;
++    let matched;
++
++    if ((matched = currentLineText.match(/^\s*```(\w+)?\s/m))) {
++        // [Code block]
++        // ```lang
++        return matchCodeBlock(
++            "code_block",
++            currentTextNode,
++            matched,
++            change,
++            matched[1]
++        );
++    }
++
++    const offsetBeforeSpace = value.selection.anchorOffset - 1;
++    const lastChar = currentLineText.charAt(offsetBeforeSpace);
++    const prevTextFromSpace = currentLineText.substr(0, offsetBeforeSpace + 1);
++
++    // inline patterns
++    if (
++        (matched =
++            lastChar === "`" &&
++            prevTextFromSpace.match(/\s?(`|``)((?!\1).)+?\1$/m))
++    ) {
++        // [Code] `code`
++        return matchCode("highlight", currentTextNode, matched, change);
++    } else if (
++        (matched = currentLineText.match(
++            /!\[([^\]]+)\]\(([^\s)]+(?:[\t ]+"(?:\\.|[^"\\])*")?)\)/
++        ))
++    ) {
++        // ![example](http://example.com "Optional title")
++        return matchImage("image", currentTextNode, matched, change);
++    } else if (
++        (matched = currentLineText.match(
++            /\[([^\]]+)\]\(([^\s)]+(?:[\t ]+"(?:\\.|[^"\\])*")?)\)/
++        ))
++    ) {
++        // [example](http://example.com "Optional title")
++        return matchLink("link", currentTextNode, matched, change);
++    }
++
++    if (lastChar === "*" || lastChar === "_") {
++        if (
++            (matched = prevTextFromSpace.match(
++                /\s?(\*\*\*|___)((?!\1).)+?\1$/m
++            ))
++        ) {
++            // [Bold + Italic] ***[strong + italic]***, ___[strong + italic]___
++            return matchBoldItalic(
++                "bolditalic",
++                currentTextNode,
++                matched,
++                change
++            );
++        } else if (
++            (matched = prevTextFromSpace.match(/\s?(\*\*|__)((?!\1).)+?\1$/m))
++        ) {
++            // [Bold] **strong**, __strong__
++            return matchBold("bold", currentTextNode, matched, change);
++        } else if (
++            (matched = prevTextFromSpace.match(/\s?(\*|_)((?!\1).)+?\1$/m))
++        ) {
++            // [Italic] _em_, *em*
++            return matchItalic("italic", currentTextNode, matched, change);
++        }
++    } else if (
++        (matched = currentLineText.match(/(^\s*)([*-])(?:[\t ]*\2){2,}/m))
++    ) {
++        // [HR]
++        // ***
++        // ---
++        // * * *
++        // -----------
++        return matchHr("line-break", currentTextNode, matched, change);
++    }
++
++    let type = getType(currentLineText);
++
++    if (!type) return;
++    if (type == "list-item" && currentTextNode.type == "list-item") return;
++    event.preventDefault();
++
++    change.setBlocks(type);
++
++    if (type == "list-item") {
++        change.wrapBlock("bulleted-list");
++    }
++    if (type == "ordered-list") {
++        change.wrapBlock("bulleted-list");
++    }
++
++    change.extendToStartOf(currentTextNode).delete();
++    return true;
++};
++
++/**
++ * On backspace, if at the start of a non-paragraph, convert it back into a
++ * paragraph node.
++ *
++ * @param {Event} event
++ * @param {Change} change
++ */
++
++export const onBackspace = (event, change) => {
++    const { value } = change;
++    if (value.isExpanded) return;
++    if (value.startOffset != 0) return;
++
++    const { startBlock } = value;
++    if (startBlock.type == "paragraph") return;
++
++    event.preventDefault();
++    change.setBlocks("paragraph");
++
++    if (startBlock.type == "list-item") {
++        change.unwrapBlock("bulleted-list");
++    }
++
++    return true;
++};
++
++/**
++ * On return, if at the end of a node type that should not be extended,
++ * create a new paragraph below it.
++ *
++ * @param {Event} event
++ * @param {Change} change
++ */
++
++export const onEnter = (event, change) => {
++    const { value } = change;
++    if (value.isExpanded) return;
++
++    const { startBlock, startOffset, endOffset } = value;
++    if (startOffset == 0 && startBlock.text.length == 0)
++        return onBackspace(event, change);
++    if (endOffset != startBlock.text.length) return;
++
++    if (
++        startBlock.type != "heading-one" &&
++        startBlock.type != "heading-two" &&
++        startBlock.type != "heading-three" &&
++        startBlock.type != "heading-four" &&
++        startBlock.type != "heading-five" &&
++        startBlock.type != "heading-six" &&
++        startBlock.type != "block-quote"
++    ) {
++        return;
++    }
++
++    event.preventDefault();
++    change.splitBlock().setBlocks("paragraph");
++    return true;
++};
++
++/**
++ * Get the block type for a series of auto-markdown shortcut `chars`.
++ *
++ * @param {String} chars
++ * @return {String} block
++ */
++
++const getType = chars => {
++    switch (chars) {
++        case "*":
++        case "-":
++        case "+":
++            return "list-item";
++        case "1.":
++            return "ordered-list";
++        case ">":
++            return "block-quote";
++        case "#":
++            return "heading-one";
++        case "##":
++            return "heading-two";
++        case "###":
++            return "heading-three";
++        case "####":
++            return "heading-four";
++        case "#####":
++            return "heading-five";
++        case "######":
++            return "heading-six";
++        default:
++            return null;
++    }
++};
+diff --git a/admin/components/Post/Editors/plugins/markdown/index.js b/admin/components/Post/Editors/plugins/markdown/index.js
+new file mode 100644
+index 0000000..1ed6659
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/index.js
+@@ -0,0 +1,17 @@
++import MarkdownNode from "./MarkdownNode";
++import MarkdownKeyboardShortcut from "./MarkdownKeyboardShortcut";
++import * as MarkdownUtils from "./MarkdownUtils";
++
++/* eslint-disable no-unused-vars */
++const MarkdownPlugin = options => ({
++    onKeyDown(...args) {
++        return MarkdownKeyboardShortcut(...args);
++    }
++});
++
++export {
++    MarkdownPlugin,
++    MarkdownNode,
++    MarkdownKeyboardShortcut,
++    MarkdownUtils
++};
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/blockquote.js b/admin/components/Post/Editors/plugins/markdown/match/blockquote.js
+new file mode 100755
+index 0000000..813e583
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/blockquote.js
+@@ -0,0 +1,20 @@
++// @flow
++import { Range } from "slate";
++import type { Change, Node } from "slate";
++
++export default function(
++  type: string,
++  currentTextNode: Node,
++  matched: any,
++  change: Change
++) {
++  const matchedLength = matched[0].length;
++  return change.setBlocks(type).deleteAtRange(
++    Range.create({
++      anchorKey: currentTextNode.key,
++      focusKey: currentTextNode.key,
++      anchorOffset: matched.index,
++      focusOffset: matched.index + matchedLength
++    })
++  );
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/bold.js b/admin/components/Post/Editors/plugins/markdown/match/bold.js
+new file mode 100755
+index 0000000..53c42fb
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/bold.js
+@@ -0,0 +1,24 @@
++import { Mark, Range } from "slate";
++
++import trailingSpace from "../utils/trailingSpace";
++import removeAllMark from "../utils/mark-removal";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++    const reg = matched[1] === "**" ? /\*\*/ : matched[1];
++    const addText = matched[0].replace(new RegExp(reg, "g"), "");
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++        .insertTextByKey(currentTextNode.key, matched.index, addText, [
++            Mark.create({ type })
++        ])
++        .call(trailingSpace, currentTextNode, matched.index)
++        .call(removeAllMark);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/boldItalic.js b/admin/components/Post/Editors/plugins/markdown/match/boldItalic.js
+new file mode 100755
+index 0000000..544e95b
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/boldItalic.js
+@@ -0,0 +1,26 @@
++// @flow
++import { Mark, Range } from "slate";
++import trailingSpace from "../utils/trailingSpace";
++import removeAllMark from "../utils/mark-removal";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++    const reg = matched[1] === "***" ? /\*\*\*/ : matched[1];
++    const addText = matched[0].trim().replace(new RegExp(reg, "g"), "");
++
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++        .insertTextByKey(currentTextNode.key, matched.index, addText, [
++            Mark.create({ type: "bold" }),
++            Mark.create({ type: "italic" })
++        ])
++        .call(trailingSpace, currentTextNode, matched.index)
++        .call(removeAllMark);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/code.js b/admin/components/Post/Editors/plugins/markdown/match/code.js
+new file mode 100755
+index 0000000..720bba9
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/code.js
+@@ -0,0 +1,25 @@
++// @flow
++import { Mark, Range } from "slate";
++
++import removeAllMark from "../utils/mark-removal";
++import trailingSpace from "../utils/trailingSpace";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++    const addText = matched[0].trim().replace(new RegExp(matched[1], "g"), "");
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusKey: currentTextNode.key,
++                focusOffset: matched.index + matchedLength,
++                isBackward: false
++            })
++        )
++        .insertTextByKey(currentTextNode.key, matched.index, addText, [
++            Mark.create({ type })
++        ])
++        .call(trailingSpace, currentTextNode, matched.index)
++        .call(removeAllMark);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/codeBlock.js b/admin/components/Post/Editors/plugins/markdown/match/codeBlock.js
+new file mode 100755
+index 0000000..a78b119
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/codeBlock.js
+@@ -0,0 +1,23 @@
++import { Range, Data } from "slate";
++import PluginEditCode from "slate-edit-code";
++
++export default function(codeOption, currentTextNode, matched, change, lang) {
++    const matchedLength = matched[0].length;
++    const codePlugin = PluginEditCode(codeOption);
++    let newChange = change;
++
++    if (lang) {
++        newChange = change.setBlocks({ data: Data.create({ syntax: lang }) });
++    }
++
++    return codePlugin.changes.wrapCodeBlock(
++        newChange.deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++    );
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/header.js b/admin/components/Post/Editors/plugins/markdown/match/header.js
+new file mode 100755
+index 0000000..cdfe335
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/header.js
+@@ -0,0 +1,25 @@
++// @flow
++import { Range } from "slate";
++
++export default (type, currentTextNode, matched, change) => {
++    const matchedLength = matched[0].length;
++    const count = (matched[0].match(/#/g) || []).length;
++    let header;
++
++    if (count === 1) header = "heading_one";
++    else if (count === 2) header = "heading_two";
++    else if (count === 3) header = "heading_three";
++    else if (count === 4) header = "heading_four";
++    else if (count === 5) header = "heading_five";
++    else if (count === 6) header = "heading_six";
++    else return;
++
++    return change.setBlocks(header).deleteAtRange(
++        Range.create({
++            anchorKey: currentTextNode.key,
++            focusKey: currentTextNode.key,
++            anchorOffset: matched.index,
++            focusOffset: matched.index + matchedLength
++        })
++    );
++};
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/hr.js b/admin/components/Post/Editors/plugins/markdown/match/hr.js
+new file mode 100755
+index 0000000..58d1a8e
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/hr.js
+@@ -0,0 +1,11 @@
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++export default function(type, currentTextNode, matched, change) {
++    return change
++        .removeNodeByKey(currentTextNode.key)
++        .insertBlock({
++            type,
++            isVoid: true
++        })
++        .collapseToStartOfNextBlock();
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/image.js b/admin/components/Post/Editors/plugins/markdown/match/image.js
+new file mode 100755
+index 0000000..71c54b5
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/image.js
+@@ -0,0 +1,26 @@
++// @flow
++import { Range } from "slate";
++// import { Change, Node } from "slate";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++        .insertBlock({
++            type,
++            isVoid: true,
++            data: {
++                src: matched[2],
++                alt: matched[1]
++            }
++        })
++        .collapseToStartOfNextText();
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/italic.js b/admin/components/Post/Editors/plugins/markdown/match/italic.js
+new file mode 100755
+index 0000000..20f0609
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/italic.js
+@@ -0,0 +1,25 @@
++// @flow
++import { Mark, Range } from "slate";
++import trailingSpace from "../utils/trailingSpace";
++import removeAllMark from "../utils/mark-removal";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++    const reg = matched[1] === "*" ? /\*/ : matched[1];
++    const addText = matched[0].replace(new RegExp(reg, "g"), "");
++
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++        .insertTextByKey(currentTextNode.key, matched.index, addText, [
++            Mark.create({ type })
++        ])
++        .call(trailingSpace, currentTextNode, matched.index)
++        .call(removeAllMark);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/link.js b/admin/components/Post/Editors/plugins/markdown/match/link.js
+new file mode 100755
+index 0000000..3abf066
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/link.js
+@@ -0,0 +1,26 @@
++// @flow
++import { Range } from "slate";
++import trailingSpace from "../utils/trailingSpace";
++
++export default function(type, currentTextNode, matched, change) {
++    const matchedLength = matched[0].length;
++
++    return change
++        .deleteAtRange(
++            Range.create({
++                anchorKey: currentTextNode.key,
++                focusKey: currentTextNode.key,
++                anchorOffset: matched.index,
++                focusOffset: matched.index + matchedLength
++            })
++        )
++        .call(trailingSpace, currentTextNode, matched.index)
++        .insertText(matched[1])
++        .extend(0 - matched[1].length)
++        .wrapInline({
++            type,
++            data: { href: matched[2] }
++        })
++        .collapseToEnd()
++        .call(trailingSpace, currentTextNode, matched.index);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/list.js b/admin/components/Post/Editors/plugins/markdown/match/list.js
+new file mode 100755
+index 0000000..909786f
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/list.js
+@@ -0,0 +1,27 @@
++// @flow
++import blocklist from "@canner/slate-helper-block-list";
++import { Range } from "slate";
++import type { Change, Node } from "slate";
++
++export default function(
++  listOption: any,
++  currentTextNode: Node,
++  matched: any,
++  change: Change,
++  ordered: boolean
++) {
++  const matchedLength = matched[0].length;
++  const newChange = change.deleteAtRange(
++    Range.create({
++      anchorKey: currentTextNode.key,
++      focusKey: currentTextNode.key,
++      anchorOffset: matched.index,
++      focusOffset: matched.index + matchedLength
++    })
++  );
++
++  return blocklist(newChange, {
++    ...listOption,
++    ordered
++  });
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/match/strikethrough.js b/admin/components/Post/Editors/plugins/markdown/match/strikethrough.js
+new file mode 100755
+index 0000000..a870089
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/match/strikethrough.js
+@@ -0,0 +1,30 @@
++// @flow
++import { Mark, Range } from "slate";
++import type { Change, Text } from "slate";
++import trailingSpace from "../utils/trailingSpace";
++import removeAllMark from "@canner/slate-helper-mark-removeall";
++
++export default function(
++  type: string,
++  currentTextNode: Text,
++  matched: any,
++  change: Change
++) {
++  const matchedLength = matched[0].length;
++  const addText = matched[0].trim().replace(new RegExp(/~/, "g"), "");
++
++  return change
++    .deleteAtRange(
++      Range.create({
++        anchorKey: currentTextNode.key,
++        focusKey: currentTextNode.key,
++        anchorOffset: matched.index,
++        focusOffset: matched.index + matchedLength
++      })
++    )
++    .insertTextByKey(currentTextNode.key, matched.index, addText, [
++      Mark.create({ type })
++    ])
++    .call(trailingSpace, currentTextNode, matched.index)
++    .call(removeAllMark);
++}
+diff --git a/admin/components/Post/Editors/plugins/markdown/utils/mark-removal.js b/admin/components/Post/Editors/plugins/markdown/utils/mark-removal.js
+new file mode 100644
+index 0000000..db15645
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/utils/mark-removal.js
+@@ -0,0 +1,11 @@
++export default change => {
++    const { value } = change;
++    if (value.marks) {
++        // remove all marks
++        value.marks.forEach(mark => {
++            change.removeMark(mark);
++        });
++    }
++
++    return change;
++};
+diff --git a/admin/components/Post/Editors/plugins/markdown/utils/trailingSpace.js b/admin/components/Post/Editors/plugins/markdown/utils/trailingSpace.js
+new file mode 100644
+index 0000000..ea67524
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/markdown/utils/trailingSpace.js
+@@ -0,0 +1,2 @@
++export default (change, currentTextNode, offsetIndex) =>
++    change.insertTextByKey(currentTextNode.key, offsetIndex, "");
+diff --git a/admin/components/Post/Editors/plugins/underline/UnderlineButton.js b/admin/components/Post/Editors/plugins/underline/UnderlineButton.js
+new file mode 100644
+index 0000000..b51f30c
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/underline/UnderlineButton.js
+@@ -0,0 +1,17 @@
++import React from "react";
++import { underlineMarkStrategy } from "./UnderlineUtils";
++/* eslint-disable react/prop-types */
++/* eslint-disable no-unused-vars */
++const UnderlineButton = ({ value, onChange, changeState, style, type }) => (
++    <span
++        style={style}
++        className="button"
++        type={type}
++        onMouseDown={e => {
++            return onChange(underlineMarkStrategy(value.change()));
++        }}
++    >
++        <span className="material-icons">format_underline</span>
++    </span>
++);
++export default UnderlineButton;
+diff --git a/admin/components/Post/Editors/plugins/underline/UnderlineKeyboardShortcut.js b/admin/components/Post/Editors/plugins/underline/UnderlineKeyboardShortcut.js
+new file mode 100644
+index 0000000..77e5174
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/underline/UnderlineKeyboardShortcut.js
+@@ -0,0 +1,10 @@
++/* eslint-disable react/prop-types */
++import { underlineMarkStrategy } from "./UnderlineUtils";
++import { isMod } from "../../helper/keyboard-event";
++
++const UnderlineKeyboardShortcut = (event, change) => {
++    if (isMod(event) && event.key === "i") return underlineMarkStrategy(change);
++    return;
++};
++
++export default UnderlineKeyboardShortcut;
+diff --git a/admin/components/Post/Editors/plugins/underline/UnderlineMark.js b/admin/components/Post/Editors/plugins/underline/UnderlineMark.js
+new file mode 100644
+index 0000000..7335114
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/underline/UnderlineMark.js
+@@ -0,0 +1,5 @@
++import React from "react";
++/* eslint-disable react/prop-types */
++const UnderlineMark = ({ children }) => <u>{children}</u>;
++
++export default UnderlineMark;
+diff --git a/admin/components/Post/Editors/plugins/underline/UnderlineUtils.js b/admin/components/Post/Editors/plugins/underline/UnderlineUtils.js
+new file mode 100644
+index 0000000..661f933
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/underline/UnderlineUtils.js
+@@ -0,0 +1,5 @@
++export const hasMark = value =>
++    value.marks.some(mark => mark.type === "underline");
++
++export const underlineMarkStrategy = change =>
++    change.toggleMark("underline").focus();
+diff --git a/admin/components/Post/Editors/plugins/underline/index.js b/admin/components/Post/Editors/plugins/underline/index.js
+new file mode 100644
+index 0000000..390fb05
+--- /dev/null
++++ b/admin/components/Post/Editors/plugins/underline/index.js
+@@ -0,0 +1,19 @@
++import UnderlineMark from "./UnderlineMark";
++import UnderlineKeyboardShortcut from "./UnderlineKeyboardShortcut";
++import * as UnderlineUtils from "./UnderlineUtils";
++import UnderlineButton from "./UnderlineButton";
++
++/* eslint-disable no-unused-vars */
++const UnderlinePlugin = options => ({
++    onKeyDown(...args) {
++        return UnderlineKeyboardShortcut(...args);
++    }
++});
++
++export {
++    UnderlinePlugin,
++    UnderlineMark,
++    UnderlineKeyboardShortcut,
++    UnderlineUtils,
++    UnderlineButton
++};
+diff --git a/admin/components/Post/Excerpt.js b/admin/components/Post/Excerpt.js
+index d772f35..7f49a01 100644
+--- a/admin/components/Post/Excerpt.js
++++ b/admin/components/Post/Excerpt.js
+@@ -4,6 +4,11 @@ import PropTypes from "prop-types";
+ import PostActions from "./PostActions";
+ 
+ class ContentEditable extends Component {
++    static propTypes = {
++        excerpt: PropTypes.string,
++        onChange: PropTypes.func
++    };
++
+     componentDidMount() {
+         this.lastExcerpt = this.props.excerpt;
+     }
+@@ -41,12 +46,11 @@ class ContentEditable extends Component {
+     }
+ }
+ 
+-ContentEditable.propTypes = {
+-    excerpt: PropTypes.string,
+-    onChange: PropTypes.func
+-};
+-
+ class Excerpt extends Component {
++    static propTypes = {
++        post: PropTypes.object
++    };
++
+     state = {
+         chars: 0
+     };
+@@ -64,28 +68,18 @@ class Excerpt extends Component {
+ 
+     render() {
+         return (
+-            <div className="card">
+-                <div className="x_title">
+-                    <div className="module-title">Introduction</div>
+-                </div>
+-                <div className="x_content">
+-                    <div className="control-group">
+-                        <ContentEditable
+-                            excerpt={this.props.post.excerpt}
+-                            onChange={e => this.setData(e.target.value)}
+-                        />
+-                        <span className="label label-default">
+-                            Chars: {this.state.chars} / 160
+-                        </span>
+-                    </div>
++            <div>
++                <div className="meta-label">
++                    Write a small introduction about this post
+                 </div>
++                <ContentEditable
++                    excerpt={this.props.post.excerpt}
++                    onChange={e => this.setData(e.target.value)}
++                />
++                <p>{this.state.chars} / 160</p>
+             </div>
+         );
+     }
+ }
+ 
+-Excerpt.propTypes = {
+-    post: PropTypes.object
+-};
+-
+ export default Excerpt;
+diff --git a/admin/components/Post/FeaturedImage.js b/admin/components/Post/FeaturedImage.js
+index 38ef162..367e6cf 100644
+--- a/admin/components/Post/FeaturedImage.js
++++ b/admin/components/Post/FeaturedImage.js
+@@ -1,10 +1,34 @@
+ import React, { Component } from "react";
+ import PropTypes from "prop-types";
++import styled from "styled-components";
+ 
+ import { uploadFile } from "../../util";
+ import config from "config";
+ import UploadCoverImage from "../../data-connectors/UploadCoverImage";
+ import InsertMedia from "../../data-connectors/InsertMedia";
++import PostActions from "./PostActions";
++
++const ImageWrapper = styled.div`
++    overflow-x: auto;
++    display: flex;
++    div {
++        width: 100px;
++        height: 60px;
++        flex-shrink: 0;
++        border: 1px solid transparent;
++        &:hover {
++            opacity: 0.4;
++        }
++        &.selected {
++            opacity: 0.4;
++        }
++        img {
++            object-fit: cover;
++            width: 100%;
++            height: 100%;
++        }
++    }
++`;
+ 
+ class FeaturedImage extends Component {
+     static contextTypes = {
+@@ -21,14 +45,29 @@ class FeaturedImage extends Component {
+             cover_image: ""
+         }
+     };
+-
+     state = {
+         cover_image: this.props.post.cover_image,
+-        fileExplorerOpen: false
++        fileExplorerOpen: false,
++        imageList: []
+     };
+-
+     uploadInputRef = React.createRef();
+ 
++    componentDidMount() {
++        const imgNodes = document.querySelectorAll(
++            ".post-content .editor--content img"
++        );
++        const imageList = [];
++        for (let i = 0; i < imgNodes.length; i++) {
++            imageList.push(imgNodes[i].getAttribute("src"));
++        }
++        this.setState({ imageList });
++    }
++
++    selectCoverImage = imagePath => {
++        PostActions.setData({ cover_image: imagePath });
++        this.setState({ cover_image: imagePath });
++    };
++
+     uploadImage = async files => {
+         const uploadedFiles = await uploadFile({
+             files,
+@@ -66,44 +105,27 @@ class FeaturedImage extends Component {
+     };
+ 
+     render() {
+-        const { t } = this.context;
+-
+-        const coverImage =
+-            this.state.cover_image || "/admin/images/placeholder-800x400.png";
+-
+         return (
+-            <div className="card">
+-                <div className="module-title">Cover Image</div>
+-                <div className="featured-image">
+-                    <img
+-                        alt=""
+-                        width="100%"
+-                        src={config.baseName + coverImage}
+-                    />
+-                    {!this.state.cover_image ? (
+-                        <a
+-                            className="btn btn-xs btn-dark"
+-                            onClick={this.toggleFileExplorer}
+-                        >
+-                            {t("addFeaturedImg")}
+-                        </a>
+-                    ) : (
+-                        <a
+-                            className="btn btn-xs btn-dark"
+-                            onClick={() => this.updateFeaturedImage("")}
+-                        >
+-                            {t("removeFeaturedImg")}
+-                        </a>
+-                    )}
+-                </div>
+-                <input
+-                    ref={this.uploadInputRef}
+-                    onChange={input => this.uploadImage(input.target.files)}
+-                    type="file"
+-                    className="hide"
+-                    name="uploads[]"
+-                    multiple="multiple"
+-                />
++            <div>
++                <div className="meta-label">Cover Image</div>
++                <ImageWrapper className="images-wrapper">
++                    {this.state.imageList.map((imagePath, idx) => {
++                        const selected = imagePath === this.state.cover_image;
++                        return (
++                            <div
++                                key={idx}
++                                className={selected ? "selected" : ""}
++                                onClick={() => this.selectCoverImage(imagePath)}
++                            >
++                                <img
++                                    alt=""
++                                    width="100%"
++                                    src={config.baseName + imagePath}
++                                />
++                            </div>
++                        );
++                    })}
++                </ImageWrapper>
+             </div>
+         );
+     }
+diff --git a/admin/components/Post/MdPreview.js b/admin/components/Post/MdPreview.js
+deleted file mode 100644
+index e40d0e5..0000000
+--- a/admin/components/Post/MdPreview.js
++++ /dev/null
+@@ -1,46 +0,0 @@
+-import React, { Component } from "react";
+-import PropTypes from "prop-types";
+-
+-class MdPreview extends Component {
+-    render() {
+-        if (this.props.post.mode == "rich-text") {
+-            return (
+-                <span className="no-preview">
+-                    Preview is only available for markdown editor
+-                </span>
+-            );
+-        }
+-        return (
+-            <div className="card">
+-                <article className="post">
+-                    <div className="post-header">
+-                        <h2 className="post-title">{this.props.post.title}</h2>
+-                    </div>
+-
+-                    <div className="post-content">
+-                        <div
+-                            id="md-preview"
+-                            dangerouslySetInnerHTML={{
+-                                __html: this.props.preview
+-                            }}
+-                        />
+-                    </div>
+-                    <div className="footer">
+-                        <span>Preview</span>
+-                        <span>
+-                            Words:{" "}
+-                            {this.props.preview.trim().split(" ").length - 1}
+-                        </span>
+-                    </div>
+-                </article>
+-            </div>
+-        );
+-    }
+-}
+-
+-MdPreview.propTypes = {
+-    post: PropTypes.object,
+-    preview: PropTypes.string
+-};
+-
+-export default MdPreview;
+diff --git a/admin/components/Post/PostActionDrawer.js b/admin/components/Post/PostActionDrawer.js
+index ab1663d..41b3c00 100644
+--- a/admin/components/Post/PostActionDrawer.js
++++ b/admin/components/Post/PostActionDrawer.js
+@@ -1,41 +1,70 @@
+ import React, { Component } from "react";
+ import PropTypes from "prop-types";
+-import { Link } from "react-router-dom";
+ 
+-import { FeaturedImage, Tags, Categories, Excerpt, PostMeta } from "./";
++import { FeaturedImage, Tags, Categories, Excerpt } from "./";
+ 
+ class PostActionDrawer extends Component {
++    static propTypes = {
++        toggleActionDrawer: PropTypes.func,
++        updatePost: PropTypes.func.isRequired,
++        isOpen: PropTypes.bool,
++        create: PropTypes.bool,
++        toggleFileExplorerModal: PropTypes.func,
++        post: PropTypes.object,
++        changePostStatus: PropTypes.func.isRequired,
++        isPublished: PropTypes.bool.isRequired
++    };
++
++    getButton = (label, btnType = "btn-primary", status) => {
++        if (typeof status == "undefined") {
++            status = this.props.isPublished ? "publish" : "draft";
++        }
++        if (status)
++            return (
++                <div className="btn-item">
++                    <button
++                        type="submit"
++                        onClick={e =>
++                            this.props.updatePost(e, { status: status })
++                        }
++                        className={"publish-btn btn btn-sm " + btnType}
++                    >
++                        {label}
++                    </button>
++                </div>
++            );
++    };
+     render() {
++        if (!this.props.isOpen) return null;
+         const post = this.props.post;
+         const classes = this.props.isOpen ? " open" : "";
++        const actionLabel = this.props.create ? "Create" : "Update";
+         return (
+-            <div className={"post-action-drawer" + classes}>
+-                <Link
+-                    to="#"
+-                    onClick={this.props.toggleActionDrawer}
+-                    className="close-action-drawer"
+-                >
+-                    ✕
+-                </Link>
+-                <PostMeta post={post} />
++            <div className={classes}>
++                <span className="switch-label switch-off-text">Draft</span>
++                <label className="switch">
++                    <input
++                        type="checkbox"
++                        onChange={this.props.changePostStatus}
++                        checked={this.props.isPublished}
++                    />
++                    <span className="slider round" />
++                </label>
++                <span className="switch-label switch-on-text">Publish</span>
++                <hr />
++                <Excerpt post={post} />
++                <hr />
+                 {post.type == "post" && <Tags post={post} />}
+                 {post.type == "post" && <Categories post={post} />}
+-
+-                <Excerpt post={post} />
+                 <FeaturedImage
+                     post={post}
+                     toggleFileExplorerModal={this.props.toggleFileExplorerModal}
+                 />
++                <hr />
++                {this.getButton(actionLabel, "btn-primary")}
+             </div>
+         );
+     }
+ }
+ 
+-PostActionDrawer.propTypes = {
+-    toggleActionDrawer: PropTypes.func,
+-    isOpen: PropTypes.bool,
+-    toggleFileExplorerModal: PropTypes.func,
+-    post: PropTypes.object
+-};
+-
+ export default PostActionDrawer;
+diff --git a/admin/components/Post/PostMeta.js b/admin/components/Post/PostMetaDrawer.js
+similarity index 66%
+rename from admin/components/Post/PostMeta.js
+rename to admin/components/Post/PostMetaDrawer.js
+index d0eb710..52ad0c7 100644
+--- a/admin/components/Post/PostMeta.js
++++ b/admin/components/Post/PostMetaDrawer.js
+@@ -2,28 +2,32 @@ import React, { Component } from "react";
+ import PropTypes from "prop-types";
+ import moment from "moment";
+ 
+-import PostActions from "./PostActions";
+ import { makeUrl } from "../../../shared/util";
++import PostActions from "./PostActions";
+ 
+-class PostMeta extends Component {
++class PostMetaDrawer extends Component {
+     state = {
+-        post: this.props.post,
+-        published: 0
++        post: this.props.post
+     };
+-
+     changeSlug = e => {
+         this.setState({
+             post: { ...this.state.post, slug: e.target.value }
+         });
+         PostActions.setData({ slug: this.state.post.slug });
+     };
++    static propTypes = {
++        toggleMetaDrawer: PropTypes.func,
++        post: PropTypes.object,
++        isOpen: PropTypes.bool,
++        updatePost: PropTypes.func.isRequired
++    };
+ 
+     render() {
+         const permalink = makeUrl([this.state.post.type, this.state.post.slug]);
+         return (
+-            <div className="card post-meta">
++            <div className="post-meta">
+                 <div className="x_content m-b-20">
+-                    <span className="meta-label">Published at</span>
++                    <div className="meta-label">Published at</div>
+                     <input
+                         type="text"
+                         className="form-control meta-value"
+@@ -34,7 +38,17 @@ class PostMeta extends Component {
+                     />
+                 </div>
+                 <div className="x_content m-b-20">
+-                    <span className="meta-label">Link to post</span>
++                    <div className="meta-label">Change Path</div>
++                    <input
++                        type="text"
++                        className="form-control meta-value"
++                        placeholder="Link to post"
++                        defaultValue={this.state.post.slug}
++                        onKeyUp={this.changeSlug}
++                    />
++                </div>
++                <div className="x_content m-b-20">
++                    <div className="meta-label">Preview</div>
+                     <div className="meta-value">
+                         <a
+                             target="_blank"
+@@ -45,23 +59,19 @@ class PostMeta extends Component {
+                         </a>
+                     </div>
+                 </div>
+-                <div className="x_content m-b-20">
+-                    <span className="meta-label">Change Path</span>
+-                    <input
+-                        type="text"
+-                        className="form-control meta-value"
+-                        placeholder="Link to post"
+-                        defaultValue={this.state.post.slug}
+-                        onKeyUp={this.changeSlug}
+-                    />
++                <hr />
++                <div className="btn-item">
++                    <button
++                        type="submit"
++                        onClick={e => this.props.updatePost(e, {})}
++                        className={"publish-btn btn btn-sm btn-primary"}
++                    >
++                        Save
++                    </button>
+                 </div>
+             </div>
+         );
+     }
+ }
+ 
+-PostMeta.propTypes = {
+-    post: PropTypes.object
+-};
+-
+-export default PostMeta;
++export default PostMetaDrawer;
+diff --git a/admin/components/Post/PostPublish.js b/admin/components/Post/PostPublish.js
+index 067b294..1b7b3fb 100644
+--- a/admin/components/Post/PostPublish.js
++++ b/admin/components/Post/PostPublish.js
+@@ -1,26 +1,61 @@
+ import React, { Component } from "react";
+ import { notify } from "react-notify-toast";
+-import { Link } from "react-router-dom";
+ import PropTypes from "prop-types";
+ 
+-import UpdatePost from "../../data-connectors/UpdatePost";
+ import PostActions from "./PostActions";
++import UpdatePost from "../../data-connectors/UpdatePost";
+ import { plural } from "../../../shared/util";
++import PostActionDrawer from "./PostActionDrawer";
++import styled from "styled-components";
++import { Link } from "react-router-dom";
++import PostMetaDrawer from "./PostMetaDrawer";
++
++// const DropDown = styled.ul`
+ 
++// `;
++const PublishBox = styled.div`
++    display: flex;
++    flex-direction: row;
++    align-items: center;
++    a:hover {
++        text-decoration: none;
++    }
++    .meta-label {
++        font-weight: 500;
++        margin-bottom: 10px;
++    }
++    > div {
++        margin-left: 20px;
++        cursor: pointer;
++    }
++    .dropdown-menu {
++        padding: 20px;
++        max-height: 90vh;
++        overflow-y: auto;
++        &.publish {
++            width: 340px;
++            margin-left: -190px;
++        }
++        &.meta {
++            width: 320px;
++            margin-left: -240px;
++        }
++    }
++`;
+ export class PostPublish extends Component {
+     static propTypes = {
+         post: PropTypes.object.isRequired,
+         update: PropTypes.func.isRequired,
+         edit: PropTypes.bool,
+         history: PropTypes.object.isRequired,
+-        create: PropTypes.bool,
+-        toggleActionDrawer: PropTypes.func.isRequired
++        create: PropTypes.bool
+     };
+ 
+     state = {
+         post: this.props.post,
+-        published: this.props.post.status == "publish",
+-        zenview: false
++        isPublished: this.props.post.status == "publish",
++        publishOpen: false,
++        metaOpen: false
+     };
+ 
+     componentDidMount() {
+@@ -29,10 +64,9 @@ export class PostPublish extends Component {
+ 
+     changePostStatus = e => {
+         this.setState({
+-            published: ~~e.target.checked
++            isPublished: ~~e.target.checked
+         });
+     };
+-
+     afterPostSave = post => {
+         let eventName = null;
+         let notifyMessage = null;
+@@ -86,68 +120,96 @@ export class PostPublish extends Component {
+         }
+     };
+ 
+-    getButton = (label, btnType = "btn-primary", status) => {
+-        if (typeof status == "undefined") {
+-            status = this.state.published ? "publish" : "draft";
+-        }
+-        if (status)
+-            return (
+-                <div className="btn-item">
+-                    <button
+-                        type="submit"
+-                        onClick={e => this.updatePost(e, { status: status })}
+-                        className={"publish-btn btn btn-sm " + btnType}
+-                    >
+-                        {label}
+-                    </button>
+-                </div>
+-            );
++    togglePublishDropdown = () => {
++        this.setState({
++            publishOpen: !this.state.publishOpen,
++            metaOpen: false
++        });
+     };
+-
+-    toggleZenView = e => {
+-        e.preventDefault();
+-        document.body.classList.toggle("distract-free");
++    toggleMetaDropdown = () => {
++        this.setState({ metaOpen: !this.state.metaOpen, publishOpen: false });
+     };
+ 
++    // closeDropdown = () => {
++    //     setTimeout(() => {
++    //         this.setState({ publishOpen: false });
++    //     }, 100);
++    // };
++
+     render() {
+-        const publishedCls = this.state.published ? "on" : "off";
+-        const actionLabel = this.props.create ? "Create" : "Update";
++        const publishedCls = this.state.isPublished ? "on" : "off";
++        const ddClassPublish =
++            "dropdown" + (this.state.publishOpen ? " open" : "");
++        const ddClassMeta = "dropdown" + (this.state.metaOpen ? " open" : "");
++        const goBackLink = "/admin/" + plural[this.props.post.type];
++        const deleteAction = e =>
++            this.updatePost(e, {
++                status: "trash"
++            });
++
+         return (
+-            <div className="card post-publish">
++            <div className="post-publish">
+                 <div className="btn-together">
+-                    {this.getButton(actionLabel, "btn-primary")}
+-                    {this.getButton(
+-                        "Trash",
+-                        "btn-danger btn-danger-invert",
+-                        "trash"
+-                    )}
++                    <Link to={goBackLink}>
++                        <span
++                            className="material-icons"
++                            style={{ fontSize: 34 }}
++                        >
++                            keyboard_arrow_left
++                        </span>
++                    </Link>
+                 </div>
+ 
+                 <div className={"switch-block " + publishedCls}>
+-                    <span className="switch-label switch-off-text">Draft</span>
+-                    <label className="switch">
+-                        <input
+-                            type="checkbox"
+-                            onChange={this.changePostStatus}
+-                            checked={this.state.published}
+-                        />
+-                        <span className="slider round" />
+-                    </label>
+-                    <span className="switch-label switch-on-text">Publish</span>
+-                    <Link
+-                        to="#"
+-                        className="action-drawer-btn"
+-                        onClick={this.toggleZenView}
+-                    >
+-                        <i className="fa fa-eye" />
+-                    </Link>
+-                    <Link
+-                        to="#"
+-                        className="action-drawer-btn"
+-                        onClick={this.props.toggleActionDrawer}
+-                    >
+-                        <i className="fa fa-cog" />
+-                    </Link>
++                    <PublishBox>
++                        <div className={ddClassPublish}>
++                            <a
++                                className="dropdown-toggle"
++                                onClick={this.togglePublishDropdown}
++                            >
++                                Publish
++                                <span className="caret" />
++                            </a>
++
++                            <div className="dropdown-menu publish">
++                                <PostActionDrawer
++                                    isPublished={this.state.isPublished}
++                                    changePostStatus={this.changePostStatus}
++                                    post={this.props.post}
++                                    toggleActionDrawer={
++                                        this.togglePublishDropdown
++                                    }
++                                    isOpen={this.state.publishOpen}
++                                    create={this.props.create || false}
++                                    updatePost={this.updatePost}
++                                />
++                            </div>
++                        </div>
++                        <div className={ddClassMeta}>
++                            <a
++                                className="dropdown-toggle"
++                                onClick={this.toggleMetaDropdown}
++                            >
++                                <span className="material-icons">
++                                    graphic_eq
++                                </span>
++                            </a>
++
++                            <div className="dropdown-menu meta">
++                                <PostMetaDrawer
++                                    post={this.props.post}
++                                    toggleMetaDrawer={this.toggleMetaDropdown}
++                                    isOpen={this.state.metaOpen}
++                                    updatePost={this.updatePost}
++                                />
++                            </div>
++                        </div>
++                        <div>
++                            <Link to="#" onClick={deleteAction}>
++                                Trash
++                            </Link>
++                        </div>
++                    </PublishBox>
+                 </div>
+             </div>
+         );
+diff --git a/admin/components/Post/Tags.js b/admin/components/Post/Tags.js
+index 9f14d07..a87e565 100644
+--- a/admin/components/Post/Tags.js
++++ b/admin/components/Post/Tags.js
+@@ -48,11 +48,8 @@ export class Tags extends Component {
+     };
+     render() {
+         return (
+-            <div className="card">
+-                <div className="x_title">
+-                    <div className="module-title">Tags</div>
+-                    <div className="clearfix" />
+-                </div>
++            <div>
++                <div className="meta-label">Tags</div>
+                 <div className="x_content">
+                     <div className="control-group">
+                         <Select.Creatable
+@@ -65,6 +62,7 @@ export class Tags extends Component {
+                         />
+                     </div>
+                 </div>
++                <hr />
+             </div>
+         );
+     }
+diff --git a/admin/components/Post/index.js b/admin/components/Post/index.js
+index 789fac0..f5b2295 100644
+--- a/admin/components/Post/index.js
++++ b/admin/components/Post/index.js
+@@ -11,4 +11,3 @@ export { default as PostPublish } from "./PostPublish";
+ export { default as PostRows } from "./TableRow";
+ export { default as Tags } from "./Tags";
+ export { default as PostActionDrawer } from "./PostActionDrawer";
+-export { default as PostMeta } from "./PostMeta";
+diff --git a/admin/components/Settings/General.js b/admin/components/Settings/General.js
+index 56b51e3..f0f31b9 100644
+--- a/admin/components/Settings/General.js
++++ b/admin/components/Settings/General.js
+@@ -19,7 +19,8 @@ export default class General extends Component {
+ 
+     state = {
+         banner: this.props.data.banner.value,
+-        site_logo: this.props.data.site_logo.value
++        site_logo: this.props.data.site_logo.value,
++        preferredEditor: this.props.data.editor.value
+     };
+ 
+     langOptions = JSON.parse(this.props.data.locale.value);
+@@ -59,6 +60,18 @@ export default class General extends Component {
+         this.updateOption("site_logo", site_logo);
+         this.setState({ site_logo });
+     };
++
++    changeEditor = e => {
++        const editor = e.target.checked ? "markdown" : "richtext";
++        this.setState(
++            {
++                preferredEditor: editor
++            },
++            () => {
++                this.updateOption("editor", this.state.preferredEditor);
++            }
++        );
++    };
+     
+     render() {
+         const { t } = this.context;
+@@ -269,6 +282,23 @@ export default class General extends Component {
+                         }
+                     />
+                 </div>
++                <div className="form-group">
++                    <div className="switch-block">
++                        <label className="custom-label">
++                            {t("settings.general.site.enableMarkdown")}
++                        </label>
++                        <label className="switch">
++                            <input
++                                type="checkbox"
++                                onChange={this.changeEditor}
++                                checked={
++                                    this.state.preferredEditor === "markdown"
++                                }
++                            />
++                            <span className="slider round" />
++                        </label>
++                    </div>
++                </div>
+                 <div className="form-group">
+                     <label className="custom-label">
+                         {t("settings.general.site.language")}
+diff --git a/admin/containers/Create/Create.js b/admin/containers/Create/Create.js
+index b2dc37e..0dbbbfe 100644
+--- a/admin/containers/Create/Create.js
++++ b/admin/containers/Create/Create.js
+@@ -1,18 +1,16 @@
+ import React, { Component } from "react";
+ import moment from "moment";
+ import PropTypes from "prop-types";
+-import { Link } from "react-router-dom";
++import styled from "styled-components";
+ 
+-import {
+-    ArticleCreate,
+-    PostPublish,
+-    PostActions,
+-    PostActionDrawer
+-} from "../../components/Post";
++import { ArticleCreate, PostPublish, PostActions } from "../../components/Post";
+ import CreatePost from "../../data-connectors/CreatePost";
+-import FileExplorerModal from "../../components/Modals/FileExplorerModal";
+-import MdPreview from "../../components/Post/MdPreview";
+-import SyncScroll from "../Hoc/SyncScroll";
++
++const FlexColumn = styled.div`
++    display: flex;
++    flex-direction: column;
++    height: ${p => (p.fullHeight ? "100vh" : "auto")};
++`;
+ 
+ export class Create extends Component {
+     static propTypes = {
+@@ -31,8 +29,6 @@ export class Create extends Component {
+ 
+     componentDidMount() {
+         const { type } = this.props;
+-        // we need this only to listen mardown/richtext changes
+-        window.addEventListener("onPostChange", this.handlePostChanges);
+ 
+         // This is going to hold all the changes done to the post.
+         PostActions.data = {};
+@@ -44,8 +40,7 @@ export class Create extends Component {
+             PostActions.setData(result.data.createPost.post);
+             this.setState({
+                 loading: false,
+-                post: result.data.createPost.post,
+-                preview: ""
++                post: result.data.createPost.post
+             });
+         });
+ 
+@@ -54,20 +49,8 @@ export class Create extends Component {
+ 
+     componentWillUnmount() {
+         document.body.classList.remove("create-" + this.props.type + "-page");
+-        window.removeEventListener("onPostChange", this.handlePostChanges);
+     }
+ 
+-    handlePostChanges = e => {
+-        if (PostActions.data.mode == "markdown") {
+-            this.props.manageScroll();
+-            if ("mdPreview" in e.detail) {
+-                this.setState({ preview: e.detail.mdPreview });
+-            }
+-        } else {
+-            this.setState({ preview: "" });
+-        }
+-    };
+-
+     toggleActionDrawer = e => {
+         e.preventDefault();
+         this.setState({ actionDrawerOpen: !this.state.actionDrawerOpen });
+@@ -79,61 +62,24 @@ export class Create extends Component {
+         });
+     };
+ 
+-    toggleZenView = e => {
+-        e.preventDefault();
+-        document.body.classList.toggle("distract-free");
+-    };
+-
+     render() {
+         if (this.state.loading) {
+             return <div />;
+         }
+         return (
+-            <section className="module-xs create-post">
+-                <div className="row">
+-                    <Link
+-                        to="#"
+-                        className="toggle-zenview"
+-                        onClick={this.toggleZenView}
+-                    >
+-                        <i className="fa fa-eye" />
+-                    </Link>
+-                    <div className="col-lg-12 distractor">
+-                        <PostPublish
+-                            create
+-                            history={this.props.history}
+-                            post={this.state.post}
+-                            toggleActionDrawer={this.toggleActionDrawer}
+-                        />
+-                    </div>
+-                    <div className="col-lg-6 column article-holder">
+-                        <ArticleCreate post={this.state.post} />
+-                    </div>
+-                    <div className="col-lg-6 column preview distractor">
+-                        <MdPreview
+-                            post={PostActions.data}
+-                            preview={this.state.preview}
+-                        />
+-                    </div>
+-                </div>
+-                <PostActionDrawer
++            <FlexColumn fullHeight>
++                <PostPublish
++                    create
++                    history={this.props.history}
+                     post={this.state.post}
+-                    isOpen={this.state.actionDrawerOpen}
+                     toggleActionDrawer={this.toggleActionDrawer}
+-                    toggleFileExplorerModal={this.toggleFileExplorerModal}
+                 />
+-                {this.state.fileExplorerProps.display && (
+-                    <FileExplorerModal {...this.state.fileExplorerProps} />
+-                )}
+-                {this.state.actionDrawerOpen && (
+-                    <div
+-                        id="modal-backdrop"
+-                        onClick={this.toggleActionDrawer}
+-                    />
+-                )}
+-            </section>
++                <div className="article-holder">
++                    <ArticleCreate post={this.state.post} />
++                </div>
++            </FlexColumn>
+         );
+     }
+ }
+ 
+-export default CreatePost(SyncScroll(Create));
++export default CreatePost(Create);
+diff --git a/admin/containers/Edit/Edit.js b/admin/containers/Edit/Edit.js
+index 8570403..9a9834c 100644
+--- a/admin/containers/Edit/Edit.js
++++ b/admin/containers/Edit/Edit.js
+@@ -1,20 +1,16 @@
+ import React, { Component } from "react";
+ import PropTypes from "prop-types";
+-import {
+-    ArticleEdit,
+-    PostPublish,
+-    PostActions,
+-    PostActionDrawer
+-} from "../../components/Post";
+-import { Link } from "react-router-dom";
++import { ArticleEdit, PostPublish, PostActions } from "../../components/Post";
+ import OhSnap from "../OhSnap";
+ import Loader from "../../components/Loader";
+ import GetSinglePost from "../../data-connectors/GetSinglePost";
+-import FileExplorerModal from "../../components/Modals/FileExplorerModal";
+-import MdPreview from "../../components/Post/MdPreview";
++import styled from "styled-components";
+ 
+-// Use to sync the scroll of mardown editor mode and preview mode
+-import SyncScroll from "../Hoc/SyncScroll";
++const FlexColumn = styled.div`
++    display: flex;
++    flex-direction: column;
++    height: ${p => (p.fullHeight ? "100vh" : "auto")};
++`;
+ 
+ class Edit extends Component {
+     static propTypes = {
+@@ -25,11 +21,13 @@ class Edit extends Component {
+     };
+ 
+     state = {
+-        preview: "",
+-        actionDrawerOpen: false,
+-        fileExplorerProps: {}
++        preview: ""
+     };
+-    
++
++    componentWillMount() {
++        window.addEventListener("onPostChange", this.handlePostChanges);
++    }
++
+     componentDidMount() {
+         window.addEventListener("onPostChange", this.handlePostChanges);
+         document.body.classList.add("edit-post-page");
+@@ -51,26 +49,6 @@ class Edit extends Component {
+         }
+     };
+ 
+-    toggleActionDrawer = e => {
+-        e.preventDefault();
+-        this.setState({ actionDrawerOpen: !this.state.actionDrawerOpen });
+-    };
+-
+-    getHtml = html => {
+-        this.setState({ html });
+-    };
+-
+-    toggleFileExplorerModal = props => {
+-        this.setState({
+-            fileExplorerProps: props
+-        });
+-    };
+-
+-    toggleZenView = e => {
+-        e.preventDefault();
+-        document.body.classList.toggle("distract-free");
+-    };
+-
+     render() {
+         if (this.props.loading) {
+             return <Loader />;
+@@ -81,54 +59,22 @@ class Edit extends Component {
+             );
+         }
+         return (
+-            <section className="module-xs">
+-                <div className="row">
+-                    <Link
+-                        to="#"
+-                        className="toggle-zenview"
+-                        onClick={this.toggleZenView}
+-                    >
+-                        <i className="fa fa-eye" />
+-                    </Link>
+-                    <div className="col-lg-12 distractor">
+-                        <PostPublish
+-                            edit
+-                            history={this.props.history}
+-                            post={this.props.post}
+-                            toggleActionDrawer={this.toggleActionDrawer}
+-                        />
+-                    </div>
+-                    <div className="col-lg-6 column article-holder ">
+-                        <ArticleEdit
+-                            post={this.props.post}
+-                            setHtml={this.setHtml}
+-                        />
+-                    </div>
+-                    <div className="col-lg-6 column preview distractor">
+-                        <MdPreview
+-                            post={PostActions.data}
+-                            preview={this.state.preview}
+-                        />
+-                    </div>
+-                </div>
+-                <PostActionDrawer
++            <FlexColumn fullHeight>
++                <PostPublish
++                    edit
++                    history={this.props.history}
+                     post={this.props.post}
+-                    isOpen={this.state.actionDrawerOpen}
+                     toggleActionDrawer={this.toggleActionDrawer}
+-                    toggleFileExplorerModal={this.toggleFileExplorerModal}
+                 />
+-                {this.state.fileExplorerProps.display && (
+-                    <FileExplorerModal {...this.state.fileExplorerProps} />
+-                )}
+-                {this.state.actionDrawerOpen && (
+-                    <div
+-                        id="modal-backdrop"
+-                        onClick={this.toggleActionDrawer}
++                <div className="article-holder">
++                    <ArticleEdit
++                        post={this.props.post}
++                        setHtml={this.setHtml}
+                     />
+-                )}
+-            </section>
++                </div>
++            </FlexColumn>
+         );
+     }
+ }
+ 
+-export default GetSinglePost(SyncScroll(Edit));
++export default GetSinglePost(Edit);
+diff --git a/admin/containers/FileExplorer/FileExplorer.js b/admin/containers/FileExplorer/FileExplorer.js
+index 1ef3121..08a44c1 100644
+--- a/admin/containers/FileExplorer/FileExplorer.js
++++ b/admin/containers/FileExplorer/FileExplorer.js
+@@ -48,8 +48,8 @@ class FileExplorer extends Component {
+     loadMore = async num => {
+         await this.props.fetchMore({
+             author_id: this.props.author.id,
+-            offset: (num - 1) * config.itemsPerPage,
+-            limit: config.itemsPerPage,
++            offset: (num - 1) * config.mediaPerPage,
++            limit: config.mediaPerPage,
+             merge: true
+         });
+         this.page = num;
+diff --git a/admin/containers/FileExplorer/FileItem.js b/admin/containers/FileExplorer/FileItem.js
+index 5919cc3..946f2c5 100644
+--- a/admin/containers/FileExplorer/FileItem.js
++++ b/admin/containers/FileExplorer/FileItem.js
+@@ -28,7 +28,7 @@ export default class MediaItem extends Component {
+                         />
+                     </div>
+                     <div className="post-body with-border">
+-                        <div className="post-header">
++                        <div className="post-header hide">
+                             <div className="post-meta">
+                                 {/* Placeholder for something cool. maybe*/}
+                             </div>
+diff --git a/admin/containers/Hoc/SyncScroll.js b/admin/containers/Hoc/SyncScroll.js
+deleted file mode 100644
+index 5c1b7f7..0000000
+--- a/admin/containers/Hoc/SyncScroll.js
++++ /dev/null
+@@ -1,64 +0,0 @@
+-import React, { Component } from "react";
+-
+-const qs = handle => document.querySelector(handle);
+-
+-export default function SyncScroll(ClassComponent) {
+-    return class extends Component {
+-        manageScroll = () => {
+-            setTimeout(() => {
+-                var $divs = [
+-                    qs(".article-holder .CodeFlask__textarea"),
+-                    qs(".preview .post-content")
+-                ];
+-                document.addEventListener(
+-                    "scroll",
+-                    e => {
+-                        $divs.forEach(div => {
+-                            if (e.target === div) {
+-                                this.adjustScroll(e);
+-                            }
+-                        });
+-                    },
+-                    true
+-                );
+-            }, 1000);
+-        }
+-
+-        adjustScroll = (event) => {
+-            const $divs = [
+-                qs(".article-holder .CodeFlask__textarea"),
+-                qs(".preview .post-content")
+-            ];
+-            let $allowed = $divs;
+-            const sync = e => {
+-                const $this = e.target;
+-                if ($allowed.indexOf($this) >= 0) {
+-                    var other = $divs.filter(div => div !== $this)[0],
+-                        percentage =
+-                            $this.scrollTop /
+-                            ($this.scrollHeight - $this.offsetHeight);
+-
+-                    other.scrollTop = Math.round(
+-                        percentage * (other.scrollHeight - other.offsetHeight)
+-                    );
+-
+-                    $allowed = e.target;
+-                } else {
+-                    $allowed = $divs;
+-                }
+-
+-                return false;
+-            };
+-            sync(event);
+-        }
+-        
+-        render() {
+-            return (
+-                <ClassComponent
+-                    {...this.props}
+-                    manageScroll={this.manageScroll}
+-                />
+-            );
+-        }
+-    };
+-}
+diff --git a/admin/containers/NoLayout.js b/admin/containers/NoLayout.js
+new file mode 100644
+index 0000000..3360c23
+--- /dev/null
++++ b/admin/containers/NoLayout.js
+@@ -0,0 +1,22 @@
++import React, { Component } from "react";
++
++export default function Layout(ComponentClass, props) {
++    const settings = props.settings;
++
++    return class extends Component {
++        constructor(props) {
++            super(props);
++        }
++
++        render() {
++            const _props = { ...this.props, ...props, settings };
++            return (
++                <div className="full-width">
++                    <div className="content-area">
++                        <ComponentClass {..._props} />
++                    </div>
++                </div>
++            );
++        }
++    };
++}
+diff --git a/admin/containers/Secured.js b/admin/containers/Secured.js
+index 8465cfe..c2fb0bd 100644
+--- a/admin/containers/Secured.js
++++ b/admin/containers/Secured.js
+@@ -4,6 +4,7 @@ import jwtDecode from "jwt-decode";
+ import { Route, Redirect } from "react-router-dom";
+ 
+ import Layout from "../containers/Layout";
++import NoLayout from "../containers/NoLayout";
+ 
+ const SecuredRoute = routeProps => {
+     try {
+@@ -20,11 +21,12 @@ const SecuredRoute = routeProps => {
+         }
+         // delete the component from props. Ito had to be wrapped with the Layout component
+         delete props.component;
++        const LayoutType = props.layout == "none" ? NoLayout : Layout;
+         return (
+             <Route
+                 {...props}
+                 exact={exact}
+-                component={Layout(Component, { ...props, author: user })}
++                component={LayoutType(Component, { ...props, author: user })}
+             />
+         );
+     } catch (e) {
+@@ -35,7 +37,8 @@ const SecuredRoute = routeProps => {
+ 
+ SecuredRoute.propTypes = {
+     component: PropTypes.func.isRequired,
+-    exact: PropTypes.bool
++    exact: PropTypes.bool,
++    layout: PropTypes.string
+ };
+ 
+ export default SecuredRoute;
+diff --git a/admin/public/pcss/admin.pcss b/admin/public/pcss/admin.pcss
+index 00e6e34..24f6a01 100755
+--- a/admin/public/pcss/admin.pcss
++++ b/admin/public/pcss/admin.pcss
+@@ -1,4 +1,6 @@
+ @import url("https://fonts.googleapis.com/css?family=Roboto:300,400,500,700.css");
++@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
++@import url("http://tutsplus.github.io/syntax-highlighter-demos/highlighters/Prism/prism_okaidia.css");
+ @import "./admin/_variables.pcss";
+ @import "./admin/_common.pcss";
+ @import "./admin/_layout.pcss";
+@@ -186,3 +188,8 @@ tr th:first-child {
+     padding-left: 12px;
+     padding-right: 12px;
+ }
++
++.prism-dark {
++    background: #252424;
++    color: #fff;
++}
+diff --git a/admin/public/pcss/admin/_editor.pcss b/admin/public/pcss/admin/_editor.pcss
+index 9965c7e..bbad30c 100644
+--- a/admin/public/pcss/admin/_editor.pcss
++++ b/admin/public/pcss/admin/_editor.pcss
+@@ -1,50 +1,49 @@
+-/* Tell Quill not to scroll */
++/* Slate js*/
+ 
+-#editor {
+-    height: auto;
+-    min-height: 300px;
+-    padding: 0px;
+-    border: none;
+-    font-family: inherit;
+-
+-    .ql-editor {
+-        overflow-y: visible;
+-        padding: 12px 0px;
+-        min-height: 100vh;
+-        padding-bottom: 400px;
+-        line-height: 1.7;
+-    }
++/*--------------------------------------
++[Toolbar]
++*--------------------------------------*/
++.toolbar-menu {
++    position: fixed;
++    padding: 8px;
++    bottom: 0px;
++    background: #ebebeb;
++    width: 100%;
++    left: 0px;
++    text-align: center;
++    z-index: 9;
++    border-top: 1px solid #ddd;
+ }
+-
+-.ql-container {
+-    font-size: 16px !important;
++.button {
++    color: #ccc;
++    cursor: pointer;
+ }
+-
+-/* Specify our own scrolling container */
+-
+-#quill-container {
+-    height: 100%;
+-    min-height: 100%;
+-    overflow-y: auto;
+-
+-    /* .ql-toolbar {
+-        opacity: 1;
+-        position: fixed;
+-        bottom: 0px;
+-        left: 200px;
+-        background: #fff;
+-        z-index: 9;
+-        width: calc(100% - 200px);
+-        text-align: center;
+-    }*/
++.material-icons {
++    font-size: 18px;
++    vertical-align: text-bottom;
++}
++.menu > * + * {
++    margin-left: 15px;
+ }
+-.options-open {
+-    .ql-toolbar {
+-        text-align: left !important;
+-    }
++.menu > * {
++    display: inline-block;
++}
++
++.article-holder {
++    width: 767px;
++    margin: 80px auto 0;
++    flex: 1;
++    display: flex;
+ }
+-@media screen and (max-width: 991px) {
+-    .ql-toolbar {
+-        width: 100%;
+-    }
++.hover-menu {
++    padding: 8px 7px 6px;
++    position: absolute;
++    z-index: 1;
++    top: -10000px;
++    left: -10000px;
++    margin-top: -6px;
++    opacity: 0;
++    background-color: #222;
++    border-radius: 4px;
++    transition: opacity 0.75s;
+ }
+diff --git a/admin/public/pcss/admin/_navbar.pcss b/admin/public/pcss/admin/_navbar.pcss
+index 5e5b064..b7b1358 100644
+--- a/admin/public/pcss/admin/_navbar.pcss
++++ b/admin/public/pcss/admin/_navbar.pcss
+@@ -12,7 +12,7 @@
+     height: 100%;
+     width: 200px;
+     ul.nav {
+-        font-weight: 100;
++        font-weight: 300;
+         letter-spacing: 1px;
+     }
+ 
+diff --git a/admin/public/pcss/admin/_post.pcss b/admin/public/pcss/admin/_post.pcss
+index 2c92fd3..2d867d3 100644
+--- a/admin/public/pcss/admin/_post.pcss
++++ b/admin/public/pcss/admin/_post.pcss
+@@ -1,52 +1,6 @@
+-.distract-free {
+-    .two-column.main {
+-        grid-template-columns: 0px 1fr;
+-        transform: translateX(0px);
+-        main {
+-            transform: translateX(0px);
+-        }
+-    }
+-    .sidebar {
+-        display: none;
+-    }
+-    .distractor {
+-        display: none !important;
+-    }
+-    .wrapper {
+-        margin: 0px;
+-    }
++.modal-open {
+     .article-holder {
+-        position: absolute;
+-        left: 50%;
+-        max-width: 768px;
+-        margin-left: -384px;
+-
+-        /* Handle */
+-        ::-webkit-scrollbar-thumb {
+-            background: rgba(43, 43, 43, 0.09);
+-            -webkit-box-shadow: none;
+-        }
+-        ::-webkit-scrollbar-track {
+-            -webkit-box-shadow: none;
+-        }
+-    }
+-    .top-bar {
+-        width: 100%;
+-    }
+-    @media screen and (max-width: 1000px) {
+-        .article-holder {
+-            width: 100%;
+-            left: 0px;
+-            margin: 0px;
+-            padding: 0px;
+-        }
+-    }
+-    .content-area {
+-        height: calc(100vh - 60px);
+-
+-        #md-post {
+-            height: calc(100vh - 210px);
+-        }
++        z-index: 999;
+     }
+ }
+ 
+@@ -168,6 +122,7 @@
+ }
+ .post-content {
+     border-top: 1px solid #eee;
++    font-size: 18px;
+ }
+ .post {
+     h1:first-child,
+@@ -183,7 +138,7 @@
+         max-width: none;
+     }
+     .post-header {
+-        margin: 16px 0 16px !important;
++        min-height: 60px;
+         .post-meta {
+             color: var(--color-text-muted);
+             padding: 8px 0px;
+@@ -191,8 +146,9 @@
+     }
+ 
+     .post-title {
+-        font-weight: 500;
+-        min-height: 20px;
++        font-weight: 600;
++        flex: 1;
++        min-height: 60px;
+         text-transform: initial;
+         a {
+             font-weight: 500;
+@@ -320,6 +276,10 @@ textarea.CodeFlask__textarea {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
++    position: fixed;
++    width: 100%;
++    padding: 10px 20px;
++    z-index: 999;
+ }
+ 
+ /*!------------------------------------------------------------------
+diff --git a/api/housekeeper/migrations/20180701152850-addEditorPreference.js b/api/housekeeper/migrations/20180701152850-addEditorPreference.js
+new file mode 100644
+index 0000000..7855357
+--- /dev/null
++++ b/api/housekeeper/migrations/20180701152850-addEditorPreference.js
+@@ -0,0 +1,28 @@
++"use strict";
++
++module.exports = {
++    up: (queryInterface, Sequelize) => {
++        return queryInterface.bulkInsert(
++            "setting",
++            [
++                {
++                    option: "editor",
++                    value: "richtext",
++                    created_at: new Date(),
++                    updated_at: new Date()
++                }
++            ],
++            {
++                logging: console.log
++            }
++        );
++    },
++
++    down: (queryInterface, Sequelize) => {
++        return queryInterface.bulkDelete("setting", [
++            {
++                option: "editor"
++            }
++        ]);
++    }
++};
+diff --git a/api/models/post.js b/api/models/post.js
+index 7b6ba8b..0b00789 100644
+--- a/api/models/post.js
++++ b/api/models/post.js
+@@ -133,7 +133,6 @@ export async function _updatePost(post, models) {
+         } catch (e) {
+             console.log(e);
+         }
+-
+         // If this post is being published for the first time, update the publish date
+         if (post.status == "publish" && oldPost.status == "draft") {
+             post.published_at = moment
+@@ -154,18 +153,16 @@ export async function _updatePost(post, models) {
+         if (post.taxonomies && post.taxonomies.length > 0) {
+             // remove the texonomy relation
+             await newPost.setTaxonomies([]);
+-
+-            let taxIndexToLink = post.taxonomies.length - 1;
+-
+-            const linkTaxonomyToPost = async taxonomy => {
+-                if (taxIndexToLink < 0) return;
+-                let taxItem = null;
+-                // add relation with existing taxonomies
+-                if (taxonomy.id != 0) {
+-                    taxItem = await models.Taxonomy.findOne({
+-                        where: { id: taxonomy.id }
+-                    });
+-                } else {
++            await Promise.all(
++                post.taxonomies.map(async taxonomy => {
++                    let taxItem = null;
++                    // add relation with existing taxonomies
++                    if (taxonomy.id != 0) {
++                        taxItem = await models.Taxonomy.findOne({
++                            where: { id: taxonomy.id }
++                        });
++                        return await newPost.addTaxonomy(taxItem);
++                    }
+                     // taxonomies needs to be created
+                     taxItem = await models.Taxonomy.findOrCreate({
+                         where: {
+@@ -180,14 +177,11 @@ export async function _updatePost(post, models) {
+                             type: taxonomy.type
+                         }
+                     });
+-                }
+-                // add relation
+-                await newPost.addTaxonomy(taxItem);
+-                taxIndexToLink--;
+-                console.log(taxIndexToLink);
+-                linkTaxonomyToPost(post.taxonomies[taxIndexToLink]);
+-            };
+-            linkTaxonomyToPost(post.taxonomies[taxIndexToLink]);
++
++                    // add relation
++                    return await newPost.addTaxonomy(taxItem);
++                })
++            );
+         }
+ 
+         return {
+diff --git a/api/seed/seed.js b/api/seed/seed.js
+index dd36b12..00b9535 100644
+--- a/api/seed/seed.js
++++ b/api/seed/seed.js
+@@ -548,6 +548,10 @@ export async function insertSettings(models) {
+         {
+             option: "banner",
+             value: "/uploads/banner.jpg"
++        },
++        {
++            option: "editor",
++            value: "richtext"
+         }
+     ];
+     await models.Setting.bulkCreate(data);
+diff --git a/package.json b/package.json
+index 69f6cda..4ed0f7f 100644
+--- a/package.json
++++ b/package.json
+@@ -49,16 +49,20 @@
+         "graphql-tag": "*",
+         "graphql-tools": "^0.10.1",
+         "has-flag": "^3.0.0",
++        "immutable": "^3.8.2",
++        "is-url": "^1.2.4",
+         "isomorphic-fetch": "^2.2.1",
+         "jsonwebtoken": "^7.3.0",
+         "jwt-decode": "^2.2.0",
+         "marked": "^0.3.16",
++        "markup-it": "^8.1.2",
+         "merge-graphql-schemas": "1.4.0",
+         "moment": "^2.17.1",
+         "multer": "^1.3.0",
+         "node-env-file": "^0.1.8",
+         "nodemailer": "^4.6.2",
+         "postcss-nested": "^3.0.0",
++        "prismjs": "^1.15.0",
+         "prop-types": "^15.6.0",
+         "react": "16.4.1",
+         "react-apollo": "^1.4.0",
+@@ -66,7 +70,7 @@
+         "react-dotdotdot": "^1.2.3",
+         "react-helmet": "^5.2.0",
+         "react-hot-loader": "^4.0.0",
+-        "react-infinite-scroller": "^1.1.3",
++        "react-infinite-scroller": "1.2.0",
+         "react-notify-toast": "^0.4.0",
+         "react-router": "^4.0.0",
+         "react-router-dom": "^4.2.2",
+@@ -76,6 +80,11 @@
+         "sequelize": "4.0.0",
+         "sequelize-cli": "^4.0.0",
+         "sharp": "^0.20.3",
++        "slate": "^0.34.2",
++        "slate-edit-code": "^0.15.5",
++        "slate-html-serializer": "^0.6.8",
++        "slate-prism": "^0.5.0",
++        "slate-react": "^0.12.11",
+         "sqlite3": "^4.0.0",
+         "styled-components": "^3.3.3"
+     },
+diff --git a/shared/i18n/lang/en.json b/shared/i18n/lang/en.json
+index 60403c5..6e12f6e 100644
+--- a/shared/i18n/lang/en.json
++++ b/shared/i18n/lang/en.json
+@@ -111,6 +111,7 @@
+     "settings.general.title": "General Settings",
+     "settings.general.tagline":
+         "Manage your blog's basic configurations from here",
++    "settings.general.site.enableMarkdown": "Enable markdown editor",
+     "settings.general.site.ga": "Google Analytics",
+     "settings.general.site.ga.placeholder":
+         "Enter your google analytics tracking id",
+diff --git a/shared/i18n/lang/fr.json b/shared/i18n/lang/fr.json
+index e790b3d..9e3ca32 100644
+--- a/shared/i18n/lang/fr.json
++++ b/shared/i18n/lang/fr.json
+@@ -107,6 +107,7 @@
+     "settings.general.title": "Paramètres généraux",
+     "settings.general.tagline":
+         "Gérer les configurations de base de votre blog à partir d'ici",
++    "settings.general.site.enableMarkdown": "Enable markdown editor",
+     "settings.general.site.title": "Titre du site",
+     "settings.general.site.title.placeholder": "Entrez le titre de votre blog",
+     "settings.general.site.tagline": "Slogan du site",
+diff --git a/shared/i18n/lang/pl.json b/shared/i18n/lang/pl.json
+index 1acb4fb..64ce42e 100644
+--- a/shared/i18n/lang/pl.json
++++ b/shared/i18n/lang/pl.json
+@@ -106,6 +106,7 @@
+     "settings.general.title": "Ustawienia ogólne",
+     "settings.general.tagline":
+         "Zarządzaj podstawowymi konfiguracjami swojego bloga",
++    "settings.general.site.enableMarkdown": "Enable markdown editor",
+     "settings.general.site.ga": "Google Analytics",
+     "settings.general.site.ga.placeholder":
+         "Enter your google analytics tracking id",
+diff --git a/shared/queries/Mutations.js b/shared/queries/Mutations.js
+index 0e80194..07b4c98 100644
+--- a/shared/queries/Mutations.js
++++ b/shared/queries/Mutations.js
+@@ -153,6 +153,7 @@ module.exports.UPDATE_POST_QUERY = gql`
+         $body: String
+         $status: String!
+         $excerpt: String
++        $cover_image: String
+         $taxonomies: [TaxonomyInputType]
+         $slug: String!
+         $mode: String
+@@ -170,6 +171,7 @@ module.exports.UPDATE_POST_QUERY = gql`
+             taxonomies: $taxonomies
+             slug: $slug
+             mode: $mode
++            cover_image: $cover_image
+         ) {
+             ok
+             errors {
