@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 
 import Editor from "./Editor";
 import PostActions from "./PostActions";
-import ContentEditable from "./ContentEditable";
 import styled from "styled-components";
 
 const Article = styled.article`
@@ -14,6 +13,17 @@ const Article = styled.article`
     div[contenteditable="true"] {
         height: 100%;
         min-height: 100vh;
+    }
+`;
+
+const TitleInput = styled.input`
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 34px;
+    margin-bottom: 20px;
+    ::placeholder {
+        font-weight: 500;
     }
 `;
 
@@ -32,15 +42,13 @@ export default class CreateArticle extends Component {
             <React.Fragment>
                 <Article className="post">
                     <div className="post-header">
-                        <ContentEditable
+                        <TitleInput
+                            title={this.props.post.title}
                             placeholder="Enter a title"
-                            title=""
                             onChange={e => {
-                                if (e.target.value !== "") {
-                                    PostActions.setData({
-                                        title: e.target.value
-                                    });
-                                }
+                                PostActions.setData({
+                                    title: e.target.value
+                                });
                             }}
                         />
                     </div>

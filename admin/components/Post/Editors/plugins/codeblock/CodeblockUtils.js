@@ -1,4 +1,5 @@
 import Prism from "prismjs";
+import { Block } from "slate";
 
 export const hasBlock = (value, type) => {
     return value.blocks.some(node => node.type == type);
@@ -107,3 +108,53 @@ function createDecoration({ text, textStart, textEnd, start, end, className }) {
         marks: [{ type: "prism-token", data: { className } }]
     };
 }
+
+export const insertNewLineBeforeCodeBlock = change => {
+    const anchor = change.value.anchorBlock;
+    const codeBlock = change.value.document.getParent(anchor.key);
+
+    if (codeBlock.type !== "code_block") return;
+
+    const parentContainer = change.value.document.getParent(codeBlock.key);
+    const index = parentContainer.nodes.findIndex(node => node === codeBlock);
+
+    change.insertNodeByKey(
+        parentContainer.key,
+        index,
+        Block.create({
+            type: "paragraph"
+        })
+    );
+
+    return true;
+};
+
+export const deleteNewLineBeforeCodeBlock = change => {
+    const anchor = change.value.anchorBlock;
+    const codeBlock = change.value.document.getParent(anchor.key);
+
+    if (codeBlock.type !== "code_block") return;
+
+    console.log(change.value.blocks);
+
+    const parentContainer = change.value.document.getParent(codeBlock.key);
+    const index = parentContainer.nodes.findIndex(node => node === codeBlock);
+
+    if (index > 0) {
+        const targetNode = parentContainer.nodes.get(index - 1);
+        change.removeNodeByKey(targetNode.key);
+        return true;
+    }
+};
+
+export const isPrintableKeycode = keycode => {
+    return (
+        (keycode > 47 && keycode < 58) || // number keys
+        keycode == 32 ||
+        keycode == 13 || // spacebar & return key(s) (if you want to allow carriage returns)
+        (keycode > 64 && keycode < 91) || // letter keys
+        (keycode > 95 && keycode < 112) || // numpad keys
+        (keycode > 185 && keycode < 193) || // ;=,-./` (in order)
+        (keycode > 218 && keycode < 223)
+    ); // [\]' (in order)
+};
