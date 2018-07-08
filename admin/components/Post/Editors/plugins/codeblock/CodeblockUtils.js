@@ -1,5 +1,6 @@
 import Prism from "prismjs";
-import { Block } from "slate";
+import { Block, Range } from "slate";
+import { isMod } from "../../helper/keyboard-event";
 
 export const hasBlock = (value, type) => {
     return value.blocks.some(node => node.type == type);
@@ -115,6 +116,9 @@ export const insertNewLineBeforeCodeBlock = change => {
 
     if (codeBlock.type !== "code_block") return;
 
+    // is it the first element in codeblock
+    if (codeBlock.nodes.findIndex(node => node === anchor) !== 0) return;
+
     const parentContainer = change.value.document.getParent(codeBlock.key);
     const index = parentContainer.nodes.findIndex(node => node === codeBlock);
 
@@ -135,7 +139,8 @@ export const deleteNewLineBeforeCodeBlock = change => {
 
     if (codeBlock.type !== "code_block") return;
 
-    console.log(change.value.blocks);
+    // is it the first element in codeblock
+    if (codeBlock.nodes.findIndex(node => node === anchor) !== 0) return;
 
     const parentContainer = change.value.document.getParent(codeBlock.key);
     const index = parentContainer.nodes.findIndex(node => node === codeBlock);
@@ -143,6 +148,44 @@ export const deleteNewLineBeforeCodeBlock = change => {
     if (index > 0) {
         const targetNode = parentContainer.nodes.get(index - 1);
         change.removeNodeByKey(targetNode.key);
+        return true;
+    }
+};
+
+export const preserveIndentationForCodeBlock = change => {
+    const anchor = change.value.anchorBlock;
+    const codeBlock = change.value.document.getParent(anchor.key);
+    if (codeBlock.type !== "code_block") return;
+
+    const lines = anchor.text.split(/\r?\n/);
+    const lastLine = lines[lines.length - 1];
+    let nSpaces = lastLine.search(/\S|$/);
+
+    if (
+        lastLine.trim().endsWith("{") ||
+        lastLine.trim().endsWith("(") ||
+        lastLine.trim().endsWith("[")
+    ) {
+        nSpaces += 2;
+    }
+
+    change.insertBlock(Block.create({ type: "paragraph" }));
+    change.insertText(" ".repeat(nSpaces));
+
+    return true;
+};
+
+export const unindentClosingBlocks = change => {
+    const anchor = change.value.anchorBlock;
+    const codeBlock = change.value.document.getParent(anchor.key);
+    if (codeBlock.type !== "code_block") return;
+
+    const lines = anchor.text.split(/\r?\n/);
+    const lastLine = lines[lines.length - 1];
+
+    const nSpaces = lastLine.search(/\S|$/);
+    if (nSpaces === lastLine.length) {
+        change.deleteBackward(2);
         return true;
     }
 };
@@ -157,4 +200,30 @@ export const isPrintableKeycode = keycode => {
         (keycode > 185 && keycode < 193) || // ;=,-./` (in order)
         (keycode > 218 && keycode < 223)
     ); // [\]' (in order)
+};
+
+export const handleCommandAInCodeBlock = (event, change) => {
+    if (!isMod(event)) return;
+
+    const anchor = change.value.anchorBlock;
+    const codeBlock = change.value.document.getParent(anchor.key);
+    if (codeBlock.type !== "code_block") return;
+
+    const startNode = codeBlock.nodes.get(0).nodes.get(0);
+    const lastNode = codeBlock.nodes.get(codeBlock.nodes.size - 1).nodes.get(0);
+
+    change.select(
+        Range.create({
+            anchorKey: startNode.key,
+            anchorOffset: 0,
+            focusKey: lastNode.key,
+            focusOffset: codeBlock.text.length
+        })
+    );
+
+    change.moveToRangeOf(codeBlock);
+    change.focus();
+
+    event.preventDefault();
+    return true;
 };

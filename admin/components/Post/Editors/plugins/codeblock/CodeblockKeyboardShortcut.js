@@ -1,7 +1,10 @@
 import {
     insertNewLineBeforeCodeBlock,
     deleteNewLineBeforeCodeBlock,
-    isPrintableKeycode
+    isPrintableKeycode,
+    preserveIndentationForCodeBlock,
+    unindentClosingBlocks,
+    handleCommandAInCodeBlock
 } from "./CodeblockUtils";
 
 export const isCodeBlock = value =>
@@ -18,13 +21,33 @@ const codeblockKeyboardShortcut = (event, change) => {
     switch (event.key) {
         case "Enter":
             if (value.startOffset === 0) {
-                return insertNewLineBeforeCodeBlock(change);
+                const done = insertNewLineBeforeCodeBlock(change);
+                if (done) return true;
             }
-            return;
+            return preserveIndentationForCodeBlock(change);
+
         case "Backspace":
             if (value.startOffset === 0) {
                 return deleteNewLineBeforeCodeBlock(change);
             }
+            break;
+
+        case "Tab":
+            event.preventDefault();
+            // insert 2 spaces
+            change.insertText("  ");
+            return true;
+
+        case "a":
+            return handleCommandAInCodeBlock(event, change);
+
+        case "}":
+        case ")":
+        case "]":
+            return unindentClosingBlocks(change);
+
+        default:
+        // console.log(event.key);
     }
 };
 
