@@ -14,9 +14,28 @@ describe("Testing Taxonomies", () => {
         const suggestions = [];
 
         const wrapper = shallow(<Tags post={post} suggestions={suggestions} />);
-        wrapper.instance().handleOnChange([{ name: "new-tag" }]);
+        wrapper.instance().handleAddition("new-tag");
         const newTagId = 0;
-        expect(wrapper.state().tags[0].id).toBe(newTagId);
+        expect(wrapper.instance().tags[0].id).toBe(newTagId);
+        done();
+    });
+
+    test("Adding an existing tag", done => {
+        const post = {
+            taxonomies: []
+        };
+        const suggestions = [
+            {
+                name: "tag1",
+                type: "post_tag",
+                id: 1
+            }
+        ];
+
+        const wrapper = shallow(<Tags post={post} suggestions={suggestions} />);
+        wrapper.instance().handleAddition("tag1");
+        const oldTagId = 1;
+        expect(wrapper.instance().tags[0].id).toBe(oldTagId);
         done();
     });
 
@@ -32,9 +51,10 @@ describe("Testing Taxonomies", () => {
         };
         const suggestions = [];
         const wrapper = shallow(<Tags post={post} suggestions={suggestions} />);
-        wrapper.instance().handleOnChange([]);
+        const tagIndex = 0;
+        wrapper.instance().handleDelete(tagIndex);
 
-        expect(wrapper.state().tags.length).toBe(0);
+        expect(wrapper.instance().tags.length).toBe(0);
         done();
     });
 
@@ -47,9 +67,30 @@ describe("Testing Taxonomies", () => {
         const wrapper = shallow(
             <Categories post={post} suggestions={suggestions} />
         );
-        wrapper.instance().handleOnChange([{ name: "new-category" }]);
+        wrapper.instance().handleAddition("new-category");
         const newCatId = 0;
-        expect(wrapper.state().categories[0].id).toBe(newCatId);
+        expect(wrapper.instance().categories[0].id).toBe(newCatId);
+        done();
+    });
+
+    test("Adding an existing category", done => {
+        const post = {
+            taxonomies: []
+        };
+        const suggestions = [
+            {
+                name: "category1",
+                type: "post_category",
+                id: 1
+            }
+        ];
+
+        const wrapper = shallow(
+            <Categories post={post} suggestions={suggestions} />
+        );
+        wrapper.instance().handleAddition("category1");
+        const oldCatId = 1;
+        expect(wrapper.instance().categories[0].id).toBe(oldCatId);
         done();
     });
 
@@ -67,9 +108,10 @@ describe("Testing Taxonomies", () => {
         const wrapper = shallow(
             <Categories post={post} suggestions={suggestions} />
         );
-        wrapper.instance().handleOnChange([]);
+        const catIndex = 0;
+        wrapper.instance().handleDelete(catIndex);
 
-        expect(wrapper.state().categories.length).toBe(0);
+        expect(wrapper.instance().categories.length).toBe(0);
         done();
     });
 });

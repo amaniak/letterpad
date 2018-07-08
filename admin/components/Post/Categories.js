@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { gql, graphql } from "react-apollo";
 import PropTypes from "prop-types";
-import Select from "react-select";
+import { WithContext as ReactTags } from "react-tag-input";
 
 import PostActions from "./PostActions";
 
@@ -10,12 +10,11 @@ export class Categories extends Component {
         suggestions: PropTypes.array,
         post: PropTypes.object
     };
-    state = {
-        categories: []
-    };
+    
+    categories = [];
 
     componentDidMount() {
-        const categories = this.props.post.taxonomies
+        this.categories = this.props.post.taxonomies
             .filter(tax => {
                 return tax.type === "post_category";
             })
@@ -23,29 +22,42 @@ export class Categories extends Component {
                 delete tax["__typename"];
                 return tax;
             });
-        PostActions.setTaxonomies({ post_category: categories });
-        this.setState({ categories });
+        PostActions.setTaxonomies({ post_category: this.categories });
     }
 
-    handleOnChange = categories => {
-        const newCategories = categories.map(category => {
-            // check if this is a new custom tag
-            if (!category.id) {
-                return {
-                    id: 0,
-                    name: category.name,
-                    type: "post_category",
-                    slug: category.name
-                };
-            }
-            delete category["__typename"];
-            return category;
-        });
-        PostActions.setTaxonomies({ post_category: newCategories });
-        this.setState({ categories: newCategories });
-    };
+    handleDelete = (i) => {
+        this.categories.splice(i, 1);
+    }
+
+    handleAddition = (tag) => {
+        let found = this.categories.some(ele => ele.name === tag);
+        let foundInSuggestion = this.props.suggestions.filter(
+            ele => (ele.name === tag ? ele.id : 0)
+        );
+
+        let id = foundInSuggestion.length > 0 ? foundInSuggestion[0].id : 0;
+        if (!found) {
+            this.categories.push({
+                id: id,
+                name: tag,
+                type: "post_category"
+            });
+            PostActions.setTaxonomies({ post_category: this.categories });
+        }
+    }
+
+    handleDrag = (tag, currPos, newPos) => {
+        // mutate array
+        this.categories.splice(currPos, 1);
+        this.categories.splice(newPos, 0, tag);
+
+        PostActions.setTaxonomies({ post_category: this.categories });
+    }
 
     render() {
+        let suggestions = this.props.suggestions || [];
+        suggestions = suggestions.map(t => t.name);
+
         return (
             <div className="card">
                 <div className="x_title">
@@ -54,13 +66,15 @@ export class Categories extends Component {
                 </div>
                 <div className="x_content">
                     <div className="control-group">
-                        <Select.Creatable
-                            labelKey="name"
-                            valueKey="name"
-                            value={this.state.categories}
-                            onChange={this.handleOnChange}
-                            options={this.props.suggestions}
-                            multi={true}
+                        <ReactTags
+                            suggestions={suggestions}
+                            autofocus={false}
+                            placeholder="Add new category..."
+                            tags={this.categories}
+                            labelField="name"
+                            handleDelete={this.handleDelete}
+                            handleAddition={this.handleAddition}
+                            handleDrag={this.handleDrag}
                         />
                     </div>
                 </div>
