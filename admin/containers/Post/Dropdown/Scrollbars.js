@@ -9,12 +9,6 @@ const Scrollbars = styled(CustomScrollbars)`
         top: 2px;
         border-radius: 2px;
     }
-    .track-horizontal {
-        right: 2px;
-        left: 2px;
-        bottom: 2px;
-        border-radius: 2px;
-    }
     .thumb-vertical,
     .thumb-horizontal {
         background-color: rgba(0, 0, 0, 0.3);
@@ -25,9 +19,6 @@ const Scrollbars = styled(CustomScrollbars)`
 const renderTrackVertical = props => (
     <div className="track-vertical" {...props} />
 );
-const renderTrackHorizontal = props => (
-    <div className="track-horizontal" {...props} />
-);
 const renderThumbVertical = props => (
     <div className="thumb-vertical" {...props} />
 );
@@ -37,7 +28,6 @@ const renderThumbHorizontal = props => (
 
 Scrollbars.defaultProps = {
     renderTrackVertical,
-    renderTrackHorizontal,
     renderThumbVertical,
     renderThumbHorizontal,
     autoHide: true

@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { notify } from "react-notify-toast";
 import styled from "styled-components";
+import sizeMe from "react-sizeme";
 
 import GetTaxonomies from "../../data-connectors/GetTaxonomies";
 import UpdateTaxonomy from "../../data-connectors/UpdateTaxonomy";
@@ -12,21 +13,34 @@ const Wrapper = styled.div`
     width: 100%;
     height: 75%;
     display: flex;
+    button {
+        cursor: pointer;
+    }
+    @media (max-width: 420px) {
+        flex-direction: column;
+        height: 100%;
+    }
 `;
 
 const TagsWrapper = styled.div`
     width: 47%;
-    height: 100%;
     display: flex;
     flex-direction: column;
+    @media (max-width: 420px) {
+        width: 100%;
+    }
 `;
 
 const ActionsWrapper = styled.div`
     width: 35%;
     margin-left: 50px;
-    height: 100%;
     display: flex;
     flex-direction: column;
+    @media (max-width: 420px) {
+        width: 100%;
+        margin-left: 0px;
+        margin-top: 20px;
+    }
 `;
 
 const Label = styled.div`
@@ -42,7 +56,7 @@ const NewTagWrapper = styled.div`
 
 const NewTagInput = styled.input`
     padding: 0.5rem;
-    width: 80%;
+    width: 90%;
     border: none;
     border-radius: 3px;
 `;
@@ -64,10 +78,11 @@ const DescInput = styled.textarea`
     margin-bottom: 15px;
 `;
 
-const StyledIcon = styled.i`
+const Icon = styled.i`
     color: #1a82d6;
     margin-right: 0.5rem;
     font-size: 20px;
+    cursor: pointer;
 `;
 
 const ButtonsWrapper = styled.div`
@@ -127,7 +142,8 @@ class Taxonomy extends Component {
             taxonomies: [],
             selected: {},
             newTagName: "",
-            selectedIndex: 0
+            selectedIndex: 0,
+            dropdownClicked: false
         };
     }
 
@@ -150,12 +166,12 @@ class Taxonomy extends Component {
     }
 
     editSaveTaxonomy = async id => {
-        const { taxonomies } = this.state;
+        const { taxonomies, selected } = this.state;
         const { type, updateTaxonomy } = this.props;
         const item = { ...taxonomies.filter(t => t.id === id)[0], type };
 
         // merge new changes into this item
-        const changedItem = { ...item, ...this.state.selected, edit: 1 };
+        const changedItem = { ...item, ...selected, edit: 1 };
 
         const result = await updateTaxonomy(changedItem);
         if (result.data.updateTaxonomy.ok) {
@@ -170,28 +186,32 @@ class Taxonomy extends Component {
     };
 
     handleNewTagName = e => {
-        const { value } = e.target;
-        this.setState({ newTagName: value });
+        this.setState({ newTagName: e.target.value });
     };
 
     saveNewTag = async () => {
-        if (!this.state.newTagName) {
+        const { newTagName, taxonomies } = this.state;
+        const { type, updateTaxonomy } = this.props;
+
+        if (!newTagName) {
             return;
         }
-        const { type, updateTaxonomy } = this.props;
+
         let item = {
             type,
-            name: this.state.newTagName,
+            name: newTagName,
             desc: "",
             edit: 0,
             id: 0,
-            slug: this.state.newTagName
+            slug: newTagName
         };
+
         const result = await updateTaxonomy(item);
+
         if (result.data.updateTaxonomy.ok) {
             let id = result.data.updateTaxonomy.id;
             item.id = id;
-            const newState = [...this.state.taxonomies, { ...item }];
+            const newState = [...taxonomies, { ...item }];
             this.setState({
                 taxonomies: newState,
                 selected: newState[newState.length - 1],
@@ -207,17 +227,17 @@ class Taxonomy extends Component {
     };
 
     handleSelect = index => {
-        this.setState(s => {
-            return { selected: s.taxonomies[index] };
-        });
+        this.setState(s => ({ selected: s.taxonomies[index] }));
+    };
+
+    handleDropdownClick = () => {
+        this.setState(s => ({ dropdownClicked: !s.dropdownClicked }));
     };
 
     deleteTax = id => {
         const { deleteTaxonomy } = this.props;
         this.setState(
-            s => ({
-                taxonomy: s.taxonomy.filter(t => t.id !== id)
-            }),
+            s => ({ taxonomies: s.taxonomies.filter(t => t.id !== id) }),
             () => deleteTaxonomy({ id })
         );
     };
@@ -227,13 +247,14 @@ class Taxonomy extends Component {
         const {
             taxonomies,
             selected: { id, desc, slug },
-            newTagName
+            newTagName,
+            dropdownClicked
         } = this.state;
-        const { loading, networkStatus } = this.props;
+        const { loading, networkStatus, size } = this.props;
         const isLoading = loading || !networkStatus === 2;
 
-        // console.log(this.state.taxonomy); // Object 5 items each one {id: 5, name: "nature", desc: null, slug: "nature", __typename: "Taxonomy", …}
-
+        const isMobile = size.width <= 420;
+        const open = isMobile ? (dropdownClicked ? true : false) : true;
         return (
             !isLoading && (
                 <section className="module-xs">
@@ -245,25 +266,34 @@ class Taxonomy extends Component {
                             {this.defaultText.subtitle1}
                         </div>
                         <Wrapper>
+                        {!open && <Label>Tag</Label>}
                             <TagsWrapper>
                                 <Dropdown
-                                    numRows={4}
+                                    numRows={5}
                                     rowHeight={44}
                                     items={taxonomies || []}
                                     selectedIndex={this.state.selectedIndex}
                                     handleSelect={this.handleSelect}
+                                    handleDropdownClick={
+                                        this.handleDropdownClick
+                                    }
+                                    isMobile={isMobile}
+                                    open={open}
+                                    dropdownClicked={dropdownClicked}
                                 />
-                                <NewTagWrapper>
-                                    <NewTagInput
-                                        value={newTagName}
-                                        onChange={this.handleNewTagName}
-                                        placeholder="Add a new tag..."
-                                    />
-                                    <StyledIcon
-                                        className="fa fa-plus"
-                                        onClick={this.saveNewTag}
-                                    />
-                                </NewTagWrapper>
+                                {open && (
+                                    <NewTagWrapper>
+                                        <NewTagInput
+                                            value={newTagName}
+                                            onChange={this.handleNewTagName}
+                                            placeholder="Add a new tag..."
+                                        />
+                                        <Icon
+                                            className="fa fa-plus"
+                                            onClick={this.saveNewTag}
+                                        />
+                                    </NewTagWrapper>
+                                )}
                             </TagsWrapper>
                             <ActionsWrapper>
                                 <Label>{t("common.slug")}</Label>
@@ -312,4 +342,6 @@ class Taxonomy extends Component {
     }
 }
 
-export default DeleteTaxonomy(UpdateTaxonomy(GetTaxonomies(Taxonomy)));
+export default DeleteTaxonomy(
+    UpdateTaxonomy(GetTaxonomies(sizeMe()(Taxonomy)))
+);

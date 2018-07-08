@@ -29,14 +29,6 @@ class ScrollbarsList extends Component {
         scrollTop: 0
     };
 
-    componentDidMount() {
-        const { scrollToIndex, rowHeight } = this.props;
-
-        if (scrollToIndex) {
-            this.scrollbars.scrollTop(scrollToIndex * rowHeight);
-        }
-    }
-
     handleScroll = ({ target: { scrollTop } }) => {
         this.setState({ scrollTop });
     };

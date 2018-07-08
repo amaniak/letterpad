@@ -16,6 +16,22 @@ const Wrapper = styled.div`
     user-select: none;
 `;
 
+const Header = styled.div`
+    display: flex;
+    width: 100%;
+    height: 44px;
+    align-items: center;
+    padding: 0.5em;
+    justify-content: space-between;
+    cursor: pointer;
+`;
+
+const Icon = styled.i`
+    margin-right: 0.5rem;
+    font-size: 20px;
+    cursor: pointer;
+`;
+
 const ListItem = styled.div`
     display: flex;
     align-items: center;
@@ -36,8 +52,11 @@ class Accordion extends Component {
         rowHeight: PropTypes.number.isRequired,
         numRows: PropTypes.number,
         handleSelect: PropTypes.func.isRequired,
+        handleDropdownClick: PropTypes.func.isRequired,
         size: PropTypes.object,
-        selectedIndex: PropTypes.number
+        selectedIndex: PropTypes.number,
+        isMobile: PropTypes.bool,
+        dropdownClicked: PropTypes.bool
     };
 
     static defaultProps = {
@@ -46,19 +65,30 @@ class Accordion extends Component {
     };
 
     state = {
-        isOpen: true,
-        selected: this.props.selectedIndex || 0
+        isOpen: false,
+        selected: 0
     };
 
-    static getDerivedStateFromProps(newProps, oldState) {
-        if (oldState.selected != newProps.selected) {
-            return { selected: newProps.selected };
+    componentDidUpdate(prevProps, prevState) {
+        if (
+            !this.props.isMobile &&
+            this.props.isMobile !== prevProps.isMobile
+        ) {
+            this.setState({ isOpen: true });
+        } else {
+            if (
+                this.props.dropdownClicked &&
+                this.state.isOpen !== prevState.isOpen
+            ) {
+                this.setState({ isOpen: true });
+            }
         }
-        return null;
     }
 
     handleOpen = () => {
         this.setState(s => ({ isOpen: !s.isOpen }));
+
+        this.props.handleDropdownClick();
     };
 
     handleClick = (index, item) => {
@@ -70,12 +100,12 @@ class Accordion extends Component {
     };
 
     render() {
-        const { isOpen, selected } = this.state;
+        const { isOpen, isMobile, selected } = this.state;
         const { items, rowHeight, numRows, size } = this.props;
 
         return (
             <Wrapper isOpen={isOpen} rowHeight={rowHeight} numRows={numRows}>
-                {isOpen && (
+                {isOpen ? (
                     <List
                         width={size.width - 2}
                         height={numRows * rowHeight}
@@ -95,6 +125,11 @@ class Accordion extends Component {
                             </ListItem>
                         )}
                     />
+                ) : (
+                    <Header onClick={this.handleOpen}>
+                        {items[0].slug}
+                        {!isMobile && <Icon className="fa caret-down" />}
+                    </Header>
                 )}
             </Wrapper>
         );
