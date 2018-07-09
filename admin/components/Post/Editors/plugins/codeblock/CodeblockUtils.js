@@ -6,7 +6,41 @@ export const hasBlock = (value, type) => {
     return value.blocks.some(node => node.type == type);
 };
 
+export const getCodeBlockParent = value => {
+    let parentNode = value.anchorBlock;
+    do {
+        if (parentNode.type === "code_block") {
+            return parentNode;
+        }
+    } while ((parentNode = value.document.getParent(parentNode.key)));
+    return null;
+};
+
 export const applyCodeblock = change => {
+    const codeBlock = getCodeBlockParent(change.value);
+
+    if (codeBlock) {
+        const startNode = codeBlock.nodes.get(0).nodes.get(0);
+        const lastNode = codeBlock.nodes
+            .get(codeBlock.nodes.size - 1)
+            .nodes.get(0);
+
+        change.select(
+            Range.create({
+                anchorKey: startNode.key,
+                anchorOffset: 0,
+                focusKey: lastNode.key,
+                focusOffset: codeBlock.text.length
+            })
+        );
+
+        change.moveToRangeOf(codeBlock);
+
+        return change
+            .removeMark("highlight")
+            .unwrapBlockByKey(codeBlock.key, "code_block");
+    }
+
     return change.wrapBlock("code_block");
 };
 
